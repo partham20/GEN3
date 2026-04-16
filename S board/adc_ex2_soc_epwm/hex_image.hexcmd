@@ -1,0 +1,63 @@
+/*
+ * hex_image.cmd — hex2000 command file for OTA binary generation
+ *
+ * Produces a FLAT binary image of the application flash area (Bank 0
+ * sectors 8-127), with address gaps filled with 0xFFFF.
+ *
+ * Without --image, hex2000 concatenates sections back-to-back and
+ * destroys address gaps — this is WRONG for flash programming where
+ * the binary is written sequentially starting at Bank 2 (0x0C0000)
+ * and later copied byte-for-byte to Bank 0 (0x082000).
+ *
+ * Address math:
+ *   C2000 is 16-bit word-addressable. hex2000 binary mode uses 8-bit
+ *   byte addresses. So word address 0x082000 = byte address 0x104000.
+ *
+ * ROMS origin/length:
+ *   Cover the entire Bank 0 application area (sectors 8-127):
+ *     Word range: 0x082000 - 0x09FFFF = 0x1E000 words
+ *     Byte range: 0x104000 - 0x13FFFF = 0x3C000 bytes
+ *   Fill = 0xFFFF (matches erased flash).
+ *
+ *   This creates a 245,760 byte image (120 KB = all 120 app sectors).
+ *   The fw_sender pads to 64-byte alignment and computes CRC on that.
+ *   The boot manager copies only imageSize bytes (from the header),
+ *   so unused trailing 0xFFFF words don't cause extra write cycles
+ *   beyond the actual firmware footprint.
+ *
+ * Usage:
+ *   hex2000 -o adc_ex2_soc_epwm.bin hex_image.cmd adc_ex2_soc_epwm.out
+ */
+
+--binary
+--image
+--order=LS
+
+ROMS {
+    /*
+     * Tight range — covers only the actual firmware footprint.
+     * Update the length whenever the firmware grows past the end
+     * of the last section (check the .map file after each build).
+     *
+     * How to recalc after a build:
+     *   1. Open CPU1_FLASH/adc_ex2_soc_epwm.map
+     *   2. Find the last flash section (usually .cinit, sometimes
+     *      .const if .cinit is empty). Note its origin + length.
+     *   3. end_word = origin + length   (e.g. 0x087430 + 0xA6 = 0x8874D6)
+     *   4. length_words = end_word - 0x082000
+     *   5. length_bytes = length_words * 2  (then round UP to a
+     *      64-byte boundary for CAN-FD frame alignment)
+     *   6. Put the result in the `l = ...` value below.
+     *
+     * Current (2026-04-14, after BU receiver added):
+     *   .cinit ends at word 0x0874D6
+     *   0x0874D6 - 0x082000 = 0x54D6 words = 0xA9AC bytes
+     *   Rounded up to 0xAB00 (gives ~84 bytes headroom).
+     *
+     * If you prefer a size that NEVER needs updating, cover the full
+     * Bank 0 app area (120 sectors, 240 KB transfer, extra ~10 s over
+     * CAN but zero maintenance):
+     *   APPLICATION: o = 0x104000, l = 0x3C000, fill = 0xFFFF
+     */
+    APPLICATION: o = 0x104000, l = 0xAB00, fill = 0xFFFF
+}

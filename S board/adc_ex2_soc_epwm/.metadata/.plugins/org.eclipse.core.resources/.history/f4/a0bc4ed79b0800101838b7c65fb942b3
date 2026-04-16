@@ -1,0 +1,173 @@
+
+
+//#include <stdio.h>
+//#include <stdint.h>
+
+#ifndef DWW_PARAMETER_H
+#define DWW_PARAMETER_H
+
+#define PRIMARY     0
+#define SECONDARY   1
+#define PHASE       3
+
+
+typedef struct {
+    unsigned int demand_chk_1sec :1;
+    unsigned int demand_chk_1hr :1;
+    unsigned int demand_chk_24hr :1;
+
+} dww_structflag;
+
+
+typedef struct {
+    unsigned int Ground_current;
+    unsigned int Nominal_IP_Volt; //Configurable
+    unsigned int Nominal_OP_Volt; // Configurable
+    unsigned int PowerCapacity; //Configurable
+
+} DWW_SYSTEM_PARAMETER;
+/*
+ * Added Structure for the primary parameter
+ */
+typedef struct {
+
+    float L2L_Volt_Phase_RY;
+    float L2L_Volt_Phase_YB;
+    float L2L_Volt_Phase_BR;
+
+    float L2N_Volt_Phase_R;
+    float L2N_Volt_Phase_Y;
+    float L2N_Volt_Phase_B;
+
+    float RMS_Curr_Phase_R;
+    float RMS_Curr_Phase_Y;
+    float RMS_Curr_Phase_B;
+
+    unsigned int Neutral_Current;
+    unsigned int RMS_Avg_Curr;
+    unsigned int RMS_Avg_Volt;
+
+    unsigned int Loadper_Phase_R;
+    unsigned int Loadper_Phase_Y;
+    unsigned int Loadper_Phase_B;
+
+    unsigned int MAX_Curr_Phase_R;
+    unsigned int MAX_Curr_Phase_Y;
+    unsigned int MAX_Curr_Phase_B;
+
+    unsigned int MIN_Curr_Phase_R;
+    unsigned int MIN_Curr_Phase_Y;
+    unsigned int MIN_Curr_Phase_B;
+
+    unsigned int MAX_Volt_Phase_R;
+    unsigned int MAX_Volt_Phase_Y;
+    unsigned int MAX_Volt_Phase_B;
+
+    unsigned int MIN_Volt_Phase_R;
+    unsigned int MIN_Volt_Phase_Y;
+    unsigned int MIN_Volt_Phase_B;
+
+    unsigned int Total_KVA;
+    unsigned int Total_KVAR;
+    unsigned int Total_KW;
+    unsigned int Total_PF;
+
+    unsigned int Volt_buff[PHASE];
+
+
+
+} DWW_PRIMARY_PARAMETER;
+/*
+ * Added Structure for the secondary parameter
+ */
+typedef struct {
+
+    float L2L_Volt_Phase_RY;
+    float L2L_Volt_Phase_YB;
+    float L2L_Volt_Phase_BR;
+
+    float L2N_Volt_Phase_R;
+    float L2N_Volt_Phase_Y;
+    float L2N_Volt_Phase_B;
+
+    unsigned int RMS_Curr_Phase_R;
+    unsigned int RMS_Curr_Phase_Y;
+    unsigned int RMS_Curr_Phase_B;
+
+    unsigned int Neutral_Current;
+    unsigned int RMS_Avg_Curr;
+    unsigned int RMS_Avg_Volt;
+    unsigned int RMS_Avg_L2N_Volt;
+
+
+    unsigned int Crest_Factor_Phase_R;
+    unsigned int Crest_Factor_Phase_Y;
+    unsigned int Crest_Factor_Phase_B;
+
+    unsigned int Loadper_Phase_R;
+    unsigned int Loadper_Phase_Y;
+    unsigned int Loadper_Phase_B;
+
+    unsigned int MAX_Curr_Phase_R;
+    unsigned int MAX_Curr_Phase_Y;
+    unsigned int MAX_Curr_Phase_B;
+
+    unsigned int MIN_Curr_Phase_R;
+    unsigned int MIN_Curr_Phase_Y;
+    unsigned int MIN_Curr_Phase_B;
+
+    unsigned int MAX_Volt_Phase_R;
+    unsigned int MAX_Volt_Phase_Y;
+    unsigned int MAX_Volt_Phase_B;
+
+    unsigned int MIN_Volt_Phase_R;
+    unsigned int MIN_Volt_Phase_Y;
+    unsigned int MIN_Volt_Phase_B;
+
+    unsigned int KVA_Phase_R;
+    unsigned int KVA_Phase_Y;
+    unsigned int KVA_Phase_B;
+    unsigned int Total_KVA;
+
+    unsigned int KW_Phase_R;
+    unsigned int KW_Phase_Y;
+    unsigned int KW_Phase_B;
+    unsigned int Total_KW;
+
+    unsigned int Volt_buff[PHASE];
+
+
+} DWW_SECONDARY_PARAMETER;
+
+/*
+ * Added structure for the Threshold
+ */
+typedef struct
+{
+    unsigned int UnderVolt_PhaseR;
+    unsigned int UnderVolt_PhaseY;
+    unsigned int UnderVolt_PhaseB;
+    unsigned int OverVolt_PhaseR;
+    unsigned int OverVolt_PhaseY;
+    unsigned int OverVolt_PhaseB;
+
+    unsigned int UnderCurr_PhaseR;
+    unsigned int UnderCurr_PhaseY;
+    unsigned int UnderCurr_PhaseB;
+    unsigned int OverCurr_PhaseR;
+    unsigned int OverCurr_PhaseY;
+    unsigned int OverCurr_PhaseB;
+
+    unsigned int Neutral_OverCurr;
+
+} DWW_THRESHOLD_PARAMETER;
+
+typedef union
+{
+    unsigned int array[16];
+    DWW_THRESHOLD_PARAMETER word;
+
+}DWW_THRESHOLD_UNION;
+
+
+#endif

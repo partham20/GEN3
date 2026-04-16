@@ -1,0 +1,1090 @@
+
+//
+// Included Files
+//
+#include "driverlib.h"
+#include "device.h"
+#include "board.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include "dww_parameter.h"
+
+//
+// Defines
+//
+#define PHASE_CURR            7
+#define PHASE_VOLT            6
+// Updated sample count threshold to 100
+#define SAMPLE_COUNT_THRESHOLD  1000
+#define Peak_Current          107 // We have considered Peak current as 107A; adjust as needed
+
+
+/*
+ *Definition added for the frequency
+ */
+#define TIMER_FREQ   150000000
+
+/*
+ * Added the Definition for the Phase Calculation function
+ */
+#define LACKING_VOLT    25
+#define PHASE_LACK      50
+#define UNBALANCE_RATE  3
+#define PHASE_LOSS      50
+
+/*
+ * Added for the phase sequence error
+ */
+
+#define PI 3.141592653589793
+#define Alpha_real (-0.5)
+#define Alpha_imag (sqrt(3)/2)
+#define Alpha2_real (-0.5)
+#define Alpha2_imag (-sqrt(3)/2)
+
+double Va_real,Va_imag;
+double Vb_real,Vb_imag;
+double Vc_real,Vc_imag;
+double V1_real,V1_imag,V1_mag;
+double V2_real, V2_imag, V2_mag;
+/*
+ * Added for ADC check need to remove furthir
+ */
+    int i;
+    float avgSquare, rms;
+    unsigned long curr_square;
+    unsigned long volt_square;
+    signed long j;
+
+/*
+ * Global Declaration for the Phase Calculation function
+ */
+unsigned int Pri_Phase_RY;
+unsigned int Pri_Phase_YB;
+unsigned int Pri_Phase_BR;
+unsigned int Sec_Phase_RY;
+unsigned int Sec_Phase_YB;
+unsigned int Sec_Phase_BR;
+int Volt_Lack_flag = 0;
+int Volt_Unbalance_flag = 0;
+int Phase_loss_flag = 0;
+int Phase_Seq_flag = 0;
+
+/*
+ *Global Declaration for the frequency and Phase sequence error
+ */
+float frequency = 0;
+volatile float lasttimestamp_R = 0 ,lasttimestamp_Y = 0, lasttimestamp_B = 0 ;
+volatile float currenttimestamp_R = 0, currenttimestamp_Y = 0, currenttimestamp_B = 0;
+signed int last_sample_R = 0, last_sample_Y = 0, last_sample_B = 0;
+float timediff;
+float timeperiod;
+float currenttimestamp;
+
+float offset_value=2048;
+
+int a=0;
+//
+// Globals
+//
+signed int  wAdcCurrBuff[PHASE_CURR]; // Buffer for OP, IP and GND Current
+signed int  wAdcVoltBuff[PHASE_VOLT]; // Buffer for OP and IP Voltage
+
+// Global accumulator for each channel's sum of squares
+unsigned long dwSumPhaseCurr[PHASE_CURR] = {0}; // For IP, OP, GND Current
+unsigned long dwSumPhaseVolt[PHASE_VOLT] = {0}; // For IP, OP Voltage
+signed long dwSumPhaseWatt[18] = {0};
+
+// Sample counter for RMS computation
+unsigned int sampleCount = 0;
+
+// Global variable for calibration factor (adjust as needed)
+// Changed to float and updated value to match working code
+float calib_pri = 3447.2f;
+
+#if 0
+float calib_sec = 1992.0f; //This is the original value obtained from the calculation but the ADC is not working as expected
+float calib_curr = 6587.1f;
+#endif                     //But if i change the value to 1250.0 then it is working as expected. need to investigate on this
+float calib_sec = 1250.0f;
+float calib_curr = 6587.1f;
+
+//
+// Global Declaration for Demand and other parameters (unchanged)
+//
+DWW_PRIMARY_PARAMETER primary;
+DWW_SECONDARY_PARAMETER secondary;
+DWW_SYSTEM_PARAMETER system_para;
+
+/*
+ * Added for the Threshold Calculation
+ */
+DWW_THRESHOLD_UNION pri_Thd;
+DWW_THRESHOLD_UNION sec_Thd;
+unsigned long dwMathBuff;
+unsigned int wGain_Kw; // Added for the Kw gain; can be eliminated if not required
+
+unsigned int struct_size;
+unsigned long dwwMathBuff;
+unsigned int max_curr;
+static int i;
+unsigned int demand_chk_1sec, demand_chk_1hr, demand_chk_24hr;
+unsigned int wDemandSumCntr[4];
+unsigned long dw_CurrDemandSum[PHASE_CURR];
+dww_structflag *sFlag;
+
+// Other global variables remain as originally defined
+unsigned int adcAResult[PHASE_CURR];
+unsigned int dww_RMS_Current;
+unsigned int count = 0;
+
+
+/*
+ * Added for the calculation for the frequency
+ */
+float current_time;
+float period;
+//
+// Function Prototypes
+//
+void initEPWM(void);
+
+//
+// Main
+//
+void main(void)
+{
+    //
+    // Initialize device clock and peripherals
+    //
+    Device_init();
+    struct_size = sizeof(primary);
+    Device_initGPIO();
+    Interrupt_initModule();
+    Interrupt_initVectorTable();
+
+    //
+    // Board Initialization:
+    // - Sets up the ADC and initializes the SOC.
+    // - Enables ADC interrupts.
+    //
+    Board_init();
+
+    initEPWM();
+
+    sampleCount = 0;
+    for(i = 0; i < PHASE_CURR; i++)
+    {
+        dwSumPhaseCurr[i] = 0;
+    }
+    for(i = 0; i < PHASE_VOLT; i++)
+    {
+        dwSumPhaseVolt[i] = 0;
+    }
+
+    EINT;
+    ERTM;
+    ADC_setVREF(ADCARESULT_BASE, ADC_REFERENCE_INTERNAL, ADC_REFERENCE_3_3V);
+    EPWM_enableADCTrigger(EPWM1_BASE, EPWM_SOC_A);
+    EPWM_setTimeBaseCounterMode(EPWM1_BASE, EPWM_COUNTER_MODE_UP);
+
+    //
+    // Main loop: Other parameter functions are called here.
+    //
+    while(1)
+    {
+        a++;
+        dww_Pri_Sec_Calculation(PRIMARY);
+        dww_Pri_Sec_Calculation(SECONDARY);
+        dww_Phase_Calculation();
+        dww_phase_seq_error();
+
+
+        // Additional processing can be placed here.
+    }
+}
+
+//
+// Function to configure ePWM1 to generate the SOC.
+//
+void initEPWM(void)
+{
+    EPWM_disableADCTrigger(EPWM1_BASE, EPWM_SOC_A);
+    EPWM_setADCTriggerSource(EPWM1_BASE, EPWM_SOC_A, EPWM_SOC_TBCTR_U_CMPA);
+    EPWM_setADCTriggerEventPrescale(EPWM1_BASE, EPWM_SOC_A, 1);
+    EPWM_setCounterCompareValue(EPWM1_BASE, EPWM_COUNTER_COMPARE_A, 2048);
+    EPWM_setTimeBasePeriod(EPWM1_BASE, 4095);
+    EPWM_setClockPrescaler(EPWM1_BASE, EPWM_CLOCK_DIVIDER_4, EPWM_HSCLOCK_DIVIDER_4);
+    EPWM_setTimeBaseCounterMode(EPWM1_BASE, EPWM_COUNTER_MODE_STOP_FREEZE);
+
+    /*
+     * Added logic to calcualate the frequency
+     */
+    EPWM_setPeriodLoadMode(EPWM1_BASE,EPWM_PERIOD_DIRECT_LOAD);
+    EPWM_setTimeBaseCounter(EPWM1_BASE, 0);
+
+}
+
+//
+// adcA1ISR - ADC A Interrupt 1 ISR
+//
+__interrupt void adcA1ISR(void)
+{
+#if 0
+    int i;
+    float avgSquare, rms;
+    unsigned long curr_square;
+    unsigned long volt_square;
+    signed long j;
+#endif
+    /*
+     * ADC Conversion for the Input, Output and Ground Current
+     */
+    wAdcCurrBuff[0] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER0) - 2020); // OP Current R Phase
+    wAdcCurrBuff[1] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER1) - offset_value); // OP Current Y Phase
+    wAdcCurrBuff[2] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER2) - offset_value); // OP Current B Phase
+    wAdcCurrBuff[3] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER3) - 2010); // IP Current R Phase
+    wAdcCurrBuff[4] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER4) - offset_value); // IP Current Y Phase
+    wAdcCurrBuff[5] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER5) - offset_value); // IP Current B Phase
+    wAdcCurrBuff[6] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER6) - offset_value); // GND Current
+
+    /*
+     * ADC Conversion for the Input and Output Voltage
+     * In input we are measuring as Line to Line and we need to calculate for Line to Neutral
+     * In output we are measuring as Line to Neutral and we need to calculate for Line to Line
+     */
+   // wAdcVoltBuff[0] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER7) - offset_value);
+   wAdcVoltBuff[0] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER7) - offset_value); // OP Voltage RN Phase
+    wAdcVoltBuff[1] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER8) - offset_value); // OP Voltage YN Phase
+    wAdcVoltBuff[2] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER9) - offset_value); // OP Voltage BN Phase
+    wAdcVoltBuff[3] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER10) - offset_value); // IP Voltage RY Phase
+    wAdcVoltBuff[4] = (signed int)(ADC_readResult(ADCERESULT_BASE, ADC_SOC_NUMBER0) - offset_value); // IP Voltage YB Phase
+    wAdcVoltBuff[5] = (signed int)(ADC_readResult(ADCARESULT_BASE, ADC_SOC_NUMBER11) - offset_value); // IP Voltage BR Phase
+
+    /*
+     * For each channel, square the result and accumulate it.
+     */
+    for(i = 0; i < PHASE_CURR; i++)
+    {
+        curr_square = (unsigned long)wAdcCurrBuff[i] * (unsigned long)wAdcCurrBuff[i];
+        dwSumPhaseCurr[i] += curr_square;
+    }
+
+    for(i = 0; i < PHASE_VOLT; i++)
+    {
+        volt_square = (unsigned long)wAdcVoltBuff[i] * (unsigned long)wAdcVoltBuff[i];
+        dwSumPhaseVolt[i] += volt_square;
+    }
+
+    /*
+     * Added for the KW Calculation for the input Parameter
+     */
+    j = ((long)wAdcVoltBuff[3] * (long)wAdcCurrBuff[3]);
+    dwSumPhaseWatt[0] += j; // Input KW R Phase
+    j = 0;
+
+    j = ((long)wAdcVoltBuff[4] * (long)wAdcCurrBuff[4]);
+    dwSumPhaseWatt[1] += j; // Input KW Y Phase
+    j = 0;
+
+    j = ((long)wAdcVoltBuff[5] * (long)wAdcCurrBuff[5]);
+    dwSumPhaseWatt[2] += j; // Input KW B Phase
+    j = 0;
+
+    //
+    // Increment the sample counter.
+    //
+    sampleCount++;
+
+    //
+    // Once 100 samples have been collected, compute the RMS for each channel.
+    //
+    if(sampleCount >= SAMPLE_COUNT_THRESHOLD)
+    {
+        /*
+         * RMS calculation of the input, output and GND current
+         */
+        avgSquare = (float)dwSumPhaseCurr[0] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        secondary.RMS_Curr_Phase_R = (unsigned int)rms;
+        dwSumPhaseCurr[0] = 0;
+
+        avgSquare = (float)dwSumPhaseCurr[1] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        secondary.RMS_Curr_Phase_Y = (unsigned int)rms;
+        dwSumPhaseCurr[1] = 0;
+
+        avgSquare = (float)dwSumPhaseCurr[2] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        secondary.RMS_Curr_Phase_B = (unsigned int)rms;
+        dwSumPhaseCurr[2] = 0;
+
+        avgSquare = (float)dwSumPhaseCurr[3] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        primary.RMS_Curr_Phase_R = (float)rms;
+        dwSumPhaseCurr[3] = 0;
+
+        avgSquare = (float)dwSumPhaseCurr[4] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        primary.RMS_Curr_Phase_Y = (float)rms;
+        dwSumPhaseCurr[4] = 0;
+
+        avgSquare = (float)dwSumPhaseCurr[5] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        primary.RMS_Curr_Phase_B = (float)rms;
+        dwSumPhaseCurr[5] = 0;
+
+        avgSquare = (float)dwSumPhaseCurr[6] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_curr / 10000;
+        system_para.Ground_current = (unsigned int)rms;
+        dwSumPhaseCurr[6] = 0;
+
+        /*
+         * RMS Calculation of the Input and Output Voltage
+         */
+        avgSquare = (float)dwSumPhaseVolt[0] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_sec / 10000;
+        secondary.L2N_Volt_Phase_R = (unsigned int)rms;
+        dwSumPhaseVolt[0] = 0;
+
+        avgSquare = (float)dwSumPhaseVolt[1] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_sec / 10000;
+        secondary.L2N_Volt_Phase_Y = (unsigned int)rms;
+        dwSumPhaseVolt[1] = 0;
+
+        avgSquare = (float)dwSumPhaseVolt[2] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_sec / 10000;
+        secondary.L2N_Volt_Phase_B = (unsigned int)rms;
+        dwSumPhaseVolt[2] = 0;
+
+        avgSquare = (float)dwSumPhaseVolt[3] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_pri / 10000;
+        primary.L2L_Volt_Phase_RY = (unsigned int)rms;
+        dwSumPhaseVolt[3] = 0;
+
+        avgSquare = (float)dwSumPhaseVolt[4] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_pri / 10000;
+        primary.L2L_Volt_Phase_YB = (unsigned int)rms;
+        dwSumPhaseVolt[4] = 0;
+
+        avgSquare = (float)dwSumPhaseVolt[5] / (float)SAMPLE_COUNT_THRESHOLD;
+        rms = sqrtf(avgSquare) * calib_pri / 10000;
+        primary.L2L_Volt_Phase_BR = (unsigned int)rms;
+        dwSumPhaseVolt[5] = 0;
+
+        sampleCount = 0;
+    }
+
+    /*
+     * Created a voltage buffer for instaneous power calcualtion
+     */
+    primary.Volt_buff[0] = primary.L2L_Volt_Phase_RY;
+    primary.Volt_buff[1] = primary.L2L_Volt_Phase_YB;
+    primary.Volt_buff[2] = primary.L2L_Volt_Phase_BR;
+
+    secondary.Volt_buff[0] = secondary.L2N_Volt_Phase_R;
+    secondary.Volt_buff[1] = secondary.L2N_Volt_Phase_Y;
+    secondary.Volt_buff[2] = secondary.L2N_Volt_Phase_B;
+
+
+    /*
+     * Need to the logic for the Frequency Calculation
+     * And for the Phase sequence detection
+     */
+
+    if((last_sample_R < 0 && wAdcVoltBuff[0] >= 0))
+    {
+        lasttimestamp_R = currenttimestamp_R;
+        currenttimestamp_R = currenttimestamp;
+        dww_Frequency_Calculation();
+    }
+
+    if((last_sample_Y < 0 && wAdcVoltBuff[1] >= 0))
+    {
+        lasttimestamp_Y = currenttimestamp_Y;
+        currenttimestamp_Y = currenttimestamp;
+    }
+
+    if((last_sample_B < 0 && wAdcVoltBuff[2] >= 0))
+    {
+        lasttimestamp_B = currenttimestamp_B;
+        currenttimestamp_B = currenttimestamp;
+    }
+
+    last_sample_R = wAdcVoltBuff[0];
+    last_sample_Y = wAdcVoltBuff[1];
+    last_sample_B = wAdcVoltBuff[2];
+
+    dww_phase_seq_error();
+    /*
+     * END of the logic for the frequency
+     */
+
+
+    //
+    // Clear the ADC interrupt flags.
+    //
+    ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER1);
+    ADC_clearInterruptStatus(myADC1_BASE, ADC_INT_NUMBER1);
+
+    if(ADC_getInterruptOverflowStatus(myADC0_BASE, ADC_INT_NUMBER1))
+    {
+        ADC_clearInterruptOverflowStatus(myADC0_BASE, ADC_INT_NUMBER1);
+        ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER1);
+    }
+
+    if(ADC_getInterruptOverflowStatus(myADC1_BASE, ADC_INT_NUMBER1))
+    {
+        ADC_clearInterruptOverflowStatus(myADC1_BASE, ADC_INT_NUMBER1);
+        ADC_clearInterruptStatus(myADC1_BASE, ADC_INT_NUMBER1);
+    }
+
+    Interrupt_clearACKGroup(INT_myADC0_1_INTERRUPT_ACK_GROUP);
+}
+
+/*
+ *Logic added calculating the Frequency
+ *
+ */
+void dww_Frequency_Calculation()
+{
+
+
+    currenttimestamp = CPUTimer_getTimerCount(Cputimer_BASE);
+
+    if (lasttimestamp_R != 0)
+    {
+        timediff = lasttimestamp_R - currenttimestamp;
+        timeperiod = timediff/ 150000000.0;
+
+        if(timeperiod > 0)
+        {
+            frequency = 1.0 / timeperiod;
+        }
+
+    }
+
+    lasttimestamp_R = currenttimestamp;
+    primary.Freq_R_Phase = primary.Freq_B_Phase = primary.Freq_Y_Phase = frequency;
+    secondary.Freq_R_Phase = secondary.Freq_Y_Phase = secondary.Freq_B_Phase = frequency;
+}
+
+/*
+ * This Function includes the following Calculations:
+ * 1. Primary Line to Neutral calculation
+ * 2. Primary Average Current
+ * 3. Primary Average Voltage
+ * 4. Primary Neutral Current
+ * 5. Primary KVA
+ * 6. Primary KVAR
+ */
+void dww_Pri_Sec_Calculation(unsigned int reg)
+{
+    unsigned int dwCurrSqr;
+    unsigned int dwCurrSum;
+
+    switch(reg)
+    {
+    case PRIMARY:
+    {
+        /*
+         * Calculation to convert the L2L voltage to L2N Voltage for Input
+         */
+        primary.L2N_Volt_Phase_R = (primary.L2L_Volt_Phase_RY / 1.7320);
+        primary.L2N_Volt_Phase_Y = (primary.L2L_Volt_Phase_YB / 1.7320);
+        primary.L2N_Volt_Phase_B = (primary.L2L_Volt_Phase_BR / 1.7320);
+
+        /*
+         * Calculation for the Primary Average Current
+         */
+        primary.RMS_Avg_Curr = ((primary.RMS_Curr_Phase_R + primary.RMS_Curr_Phase_Y + primary.RMS_Curr_Phase_B) / 3);
+
+        /*
+         * Calculation for the Primary Average Voltage
+         */
+        primary.RMS_Avg_Volt = ((primary.L2L_Volt_Phase_RY + primary.L2L_Volt_Phase_YB + primary.L2L_Volt_Phase_BR) / 3);
+
+        /*
+         * Calculation for the Primary Neutral Current
+         */
+        dwCurrSqr = (primary.RMS_Curr_Phase_R * primary.RMS_Curr_Phase_R) +
+                    (primary.RMS_Curr_Phase_Y * primary.RMS_Curr_Phase_Y) +
+                    (primary.RMS_Curr_Phase_B * primary.RMS_Curr_Phase_B);
+        dwCurrSum = (primary.RMS_Curr_Phase_R * primary.RMS_Curr_Phase_Y) +
+                    (primary.RMS_Curr_Phase_R * primary.RMS_Curr_Phase_B) +
+                    (primary.RMS_Curr_Phase_Y * primary.RMS_Curr_Phase_B);
+        primary.Neutral_Current = sqrt(dwCurrSqr - dwCurrSum);
+
+        break;
+    }
+    case SECONDARY:
+    {
+        /*
+         * Calculation to convert L2N voltage to L2L Voltage for Output
+         */
+        //secondary.L2L_Volt_Phase_RY = (secondary.L2N_Volt_Phase_R * 1.7320);
+        secondary.L2L_Volt_Phase_RY = (secondary.L2N_Volt_Phase_R * 1.7320);
+        secondary.L2L_Volt_Phase_YB = (secondary.L2N_Volt_Phase_Y * 1.7320);
+        secondary.L2L_Volt_Phase_BR = (secondary.L2N_Volt_Phase_B * 1.7320);
+
+        /*
+         * Calculation for the secondary Average Current
+         */
+        secondary.RMS_Avg_Curr = ((secondary.RMS_Curr_Phase_R + secondary.RMS_Curr_Phase_Y + secondary.RMS_Curr_Phase_B) / 3);
+
+        /*
+         * Calculation for the secondary Average Line to Line Voltage
+         */
+        secondary.RMS_Avg_Volt = ((secondary.L2L_Volt_Phase_RY + secondary.L2L_Volt_Phase_YB + secondary.L2L_Volt_Phase_BR) / 3);
+
+        /*
+         * Calculation for the secondary Average Line to Neutral Voltage
+         */
+        secondary.RMS_Avg_L2N_Volt = ((secondary.L2N_Volt_Phase_R + secondary.L2N_Volt_Phase_Y + secondary.L2N_Volt_Phase_B) / 3);
+
+        /*
+         * Calculation for the Crest factor
+         */
+        secondary.Crest_Factor_Phase_R = ((Peak_Current) / (secondary.RMS_Curr_Phase_R));
+        secondary.Crest_Factor_Phase_Y = ((Peak_Current) / (secondary.RMS_Curr_Phase_Y));
+        secondary.Crest_Factor_Phase_B = ((Peak_Current) / (secondary.RMS_Curr_Phase_B));
+
+        /*
+         * Calculation for the Secondary Neutral Current
+         */
+        dwCurrSqr = (secondary.RMS_Curr_Phase_R * secondary.RMS_Curr_Phase_R) +
+                    (secondary.RMS_Curr_Phase_Y * secondary.RMS_Curr_Phase_Y) +
+                    (secondary.RMS_Curr_Phase_B * secondary.RMS_Curr_Phase_B);
+        dwCurrSum = (secondary.RMS_Curr_Phase_R * secondary.RMS_Curr_Phase_Y) +
+                    (secondary.RMS_Curr_Phase_R * secondary.RMS_Curr_Phase_B) +
+                    (secondary.RMS_Curr_Phase_Y * secondary.RMS_Curr_Phase_B);
+        secondary.Neutral_Current = sqrt(dwCurrSqr - dwCurrSum);
+
+        break;
+    }
+    }
+}
+
+/*
+ * Logic for Maximum and Minimum Parameter Calculation for input and Output parameters
+ */
+void dww_Max_Min_Calculation(unsigned int reg)
+{
+    switch (reg)
+    {
+    case PRIMARY:
+    {
+        /*
+         * Calculation for Input Maximum Current
+         */
+        if (((primary.RMS_Curr_Phase_R != 0xFFFF) &&
+             ((primary.MAX_Curr_Phase_R < primary.RMS_Curr_Phase_R) ||
+              (primary.MAX_Curr_Phase_R == 0xFFFF))))
+        {
+            primary.MAX_Curr_Phase_R = primary.RMS_Curr_Phase_R;
+        }
+
+        if (((primary.RMS_Curr_Phase_Y != 0xFFFF) &&
+             ((primary.MAX_Curr_Phase_Y < primary.RMS_Curr_Phase_Y) ||
+              (primary.MAX_Curr_Phase_Y == 0xFFFF))))
+        {
+            primary.MAX_Curr_Phase_Y = primary.RMS_Curr_Phase_Y;
+        }
+
+        if (((primary.RMS_Curr_Phase_B != 0xFFFF) &&
+             ((primary.MAX_Curr_Phase_B < primary.RMS_Curr_Phase_B) ||
+              (primary.MAX_Curr_Phase_B == 0xFFFF))))
+        {
+            primary.MAX_Curr_Phase_B = primary.RMS_Curr_Phase_B;
+        }
+        /*
+         * Calculation for Input Minimum Current
+         */
+        if (((primary.RMS_Curr_Phase_R != 0x0000) &&
+             ((primary.MIN_Curr_Phase_R > primary.RMS_Curr_Phase_R) ||
+              (primary.MIN_Curr_Phase_R == 0x0000))))
+        {
+            primary.MIN_Curr_Phase_R = primary.RMS_Curr_Phase_R;
+        }
+
+        if (((primary.RMS_Curr_Phase_Y != 0x0000) &&
+             ((primary.MIN_Curr_Phase_Y > primary.RMS_Curr_Phase_Y) ||
+              (primary.MIN_Curr_Phase_Y == 0x0000))))
+        {
+            primary.MIN_Curr_Phase_Y = primary.RMS_Curr_Phase_Y;
+        }
+
+        if (((primary.RMS_Curr_Phase_B != 0x0000) &&
+             ((primary.MIN_Curr_Phase_B > primary.RMS_Curr_Phase_B) ||
+              (primary.MIN_Curr_Phase_B == 0x0000))))
+        {
+            primary.MIN_Curr_Phase_B = primary.RMS_Curr_Phase_B;
+        }
+
+        /*
+         * Calculation for Input Maximum Voltage
+         */
+        if (((primary.L2N_Volt_Phase_R != 0xFFFF) &&
+             ((primary.MAX_Volt_Phase_R < primary.L2N_Volt_Phase_R) ||
+              (primary.MAX_Volt_Phase_R == 0xFFFF))))
+        {
+            primary.MAX_Volt_Phase_R = primary.L2N_Volt_Phase_R;
+        }
+
+        if (((primary.L2N_Volt_Phase_Y != 0xFFFF) &&
+             ((primary.MAX_Volt_Phase_Y < primary.L2N_Volt_Phase_Y) ||
+              (primary.MAX_Volt_Phase_Y == 0xFFFF))))
+        {
+            primary.MAX_Volt_Phase_Y = primary.L2N_Volt_Phase_Y;
+        }
+
+        if (((primary.L2N_Volt_Phase_B != 0xFFFF) &&
+             ((primary.MAX_Volt_Phase_B < primary.L2N_Volt_Phase_B) ||
+              (primary.MAX_Volt_Phase_B == 0xFFFF))))
+        {
+            primary.MAX_Volt_Phase_B = primary.L2N_Volt_Phase_B;
+        }
+        /*
+         * Calculation for Input Minimum Voltage
+         */
+        if (((primary.L2N_Volt_Phase_R != 0x0000) &&
+             ((primary.MIN_Volt_Phase_R > primary.L2N_Volt_Phase_R) ||
+              (primary.MIN_Volt_Phase_R == 0x0000))))
+        {
+            primary.MIN_Volt_Phase_R = primary.L2N_Volt_Phase_R;
+        }
+
+        if (((primary.L2N_Volt_Phase_Y != 0x0000) &&
+             ((primary.MIN_Volt_Phase_Y > primary.L2N_Volt_Phase_Y) ||
+              (primary.MIN_Volt_Phase_Y == 0x0000))))
+        {
+            primary.MIN_Volt_Phase_Y = primary.L2N_Volt_Phase_Y;
+        }
+
+        if (((primary.L2N_Volt_Phase_B != 0x0000) &&
+             ((primary.MIN_Volt_Phase_B > primary.L2N_Volt_Phase_B) ||
+              (primary.MIN_Volt_Phase_B == 0x0000))))
+        {
+            primary.MIN_Volt_Phase_B = primary.L2N_Volt_Phase_B;
+        }
+        break;
+    }
+    case SECONDARY:
+    {
+        /*
+         * Calculation for Output Maximum Current
+         */
+        if (((secondary.RMS_Curr_Phase_R != 0xFFFF) &&
+             ((secondary.MAX_Curr_Phase_R < secondary.RMS_Curr_Phase_R) ||
+              (secondary.MAX_Curr_Phase_R == 0xFFFF))))
+        {
+            secondary.MAX_Curr_Phase_R = secondary.RMS_Curr_Phase_R;
+        }
+
+        if (((secondary.RMS_Curr_Phase_Y != 0xFFFF) &&
+             ((secondary.MAX_Curr_Phase_Y < secondary.RMS_Curr_Phase_Y) ||
+              (secondary.MAX_Curr_Phase_Y == 0xFFFF))))
+        {
+            secondary.MAX_Curr_Phase_Y = secondary.RMS_Curr_Phase_Y;
+        }
+
+        if (((secondary.RMS_Curr_Phase_B != 0xFFFF) &&
+             ((secondary.MAX_Curr_Phase_B < secondary.RMS_Curr_Phase_B) ||
+              (secondary.MAX_Curr_Phase_B == 0xFFFF))))
+        {
+            secondary.MAX_Curr_Phase_B = secondary.RMS_Curr_Phase_B;
+        }
+        /*
+         * Calculation for Output Minimum Current
+         */
+        if (((secondary.RMS_Curr_Phase_R != 0x0000) &&
+             ((secondary.MIN_Curr_Phase_R > secondary.RMS_Curr_Phase_R) ||
+              (secondary.MIN_Curr_Phase_R == 0x0000))))
+        {
+            secondary.MIN_Curr_Phase_R = secondary.RMS_Curr_Phase_R;
+        }
+
+        if (((secondary.RMS_Curr_Phase_Y != 0x0000) &&
+             ((secondary.MIN_Curr_Phase_Y > secondary.RMS_Curr_Phase_Y) ||
+              (secondary.MIN_Curr_Phase_Y == 0x0000))))
+        {
+            secondary.MIN_Curr_Phase_Y = secondary.RMS_Curr_Phase_Y;
+        }
+
+        if (((secondary.RMS_Curr_Phase_B != 0x0000) &&
+             ((secondary.MIN_Curr_Phase_B > secondary.RMS_Curr_Phase_B) ||
+              (secondary.MIN_Curr_Phase_B == 0x0000))))
+        {
+            secondary.MIN_Curr_Phase_B = secondary.RMS_Curr_Phase_B;
+        }
+        /*
+         * Calculation for the Output Maximum Voltage
+         */
+        if (((secondary.L2N_Volt_Phase_R != 0xFFFF) &&
+             ((secondary.MAX_Volt_Phase_R < secondary.L2N_Volt_Phase_R) ||
+              (secondary.MAX_Volt_Phase_R == 0xFFFF))))
+        {
+            secondary.MAX_Volt_Phase_R = secondary.L2N_Volt_Phase_R;
+        }
+
+        if (((secondary.L2N_Volt_Phase_Y != 0xFFFF) &&
+             ((secondary.MAX_Volt_Phase_Y < secondary.L2N_Volt_Phase_Y) ||
+              (secondary.MAX_Volt_Phase_Y == 0xFFFF))))
+        {
+            secondary.MAX_Volt_Phase_Y = secondary.L2N_Volt_Phase_Y;
+        }
+
+        if (((secondary.L2N_Volt_Phase_B != 0xFFFF) &&
+             ((secondary.MAX_Volt_Phase_B < secondary.L2N_Volt_Phase_B) ||
+              (secondary.MAX_Volt_Phase_B == 0xFFFF))))
+        {
+            secondary.MAX_Volt_Phase_B = secondary.L2N_Volt_Phase_B;
+        }
+        /*
+         * Calculation for the Output Minimum Voltage
+         */
+        if (((secondary.L2N_Volt_Phase_R != 0x0000) &&
+             ((secondary.MIN_Volt_Phase_R > secondary.L2N_Volt_Phase_R) ||
+              (secondary.MIN_Volt_Phase_R == 0x0000))))
+        {
+            secondary.MIN_Volt_Phase_R = secondary.L2N_Volt_Phase_R;
+        }
+
+        if (((secondary.L2N_Volt_Phase_Y != 0x0000) &&
+             ((secondary.MIN_Volt_Phase_Y > secondary.L2N_Volt_Phase_Y) ||
+              (secondary.MIN_Volt_Phase_Y == 0x0000))))
+        {
+            secondary.MIN_Volt_Phase_Y = secondary.L2N_Volt_Phase_Y;
+        }
+
+        if (((secondary.L2N_Volt_Phase_B != 0x0000) &&
+             ((secondary.MIN_Volt_Phase_B > secondary.L2N_Volt_Phase_B) ||
+              (secondary.MIN_Volt_Phase_B == 0x0000))))
+        {
+            secondary.MIN_Volt_Phase_B = secondary.L2N_Volt_Phase_B;
+        }
+    }
+    default:
+        break;
+    }
+}
+
+/*
+ * This load percentage calculation is done in M-board
+ */
+#if 0
+/*
+ * Added Load percentage Calculation for both Input and Output
+ */
+void dww_Loadper_Calculation(unsigned int reg)
+{
+    unsigned long dwMathBuff;
+    switch(reg)
+    {
+    case PRIMARY:
+    {
+        dwMathBuff = (unsigned long)(primary.RMS_Curr_Phase_R * 1000);
+        if (pri_Thd.word.OverCurr_PhaseR != 0)
+        {
+            primary.Loadper_Phase_R = dwMathBuff / pri_Thd.word.OverCurr_PhaseR;
+        }
+
+        dwMathBuff = (unsigned long)(primary.RMS_Curr_Phase_Y * 1000);
+        if(pri_Thd.word.OverCurr_PhaseY != 0)
+        {
+            primary.Loadper_Phase_Y = dwMathBuff / pri_Thd.word.OverCurr_PhaseY;
+        }
+
+        dwMathBuff = (unsigned long)(primary.RMS_Curr_Phase_B * 1000);
+        if (pri_Thd.word.OverCurr_PhaseB != 0)
+        {
+            primary.Loadper_Phase_B = dwMathBuff / pri_Thd.word.OverCurr_PhaseB;
+        }
+
+        break;
+    }
+    case SECONDARY:
+    {
+        dwMathBuff = (unsigned long)(secondary.RMS_Curr_Phase_R * 1000);
+        if(sec_Thd.word.OverCurr_PhaseR != 0)
+        {
+            secondary.Loadper_Phase_R = dwMathBuff / sec_Thd.word.OverCurr_PhaseR;
+        }
+
+        dwMathBuff = (unsigned long)(secondary.RMS_Curr_Phase_Y * 1000);
+        if(sec_Thd.word.OverCurr_PhaseY != 0)
+        {
+            secondary.Loadper_Phase_Y = dwMathBuff / sec_Thd.word.OverCurr_PhaseY;
+        }
+
+        dwMathBuff = (unsigned long)(secondary.RMS_Curr_Phase_B * 1000);
+        if(sec_Thd.word.OverCurr_PhaseB != 0)
+        {
+            secondary.Loadper_Phase_B = dwMathBuff / sec_Thd.word.OverCurr_PhaseB;
+        }
+
+        break;
+    }
+    default:
+    break;
+    }
+}
+#endif
+
+void dww_phase_seq_error()
+{
+
+    if(lasttimestamp_R && lasttimestamp_Y && lasttimestamp_B)
+    {
+        if(lasttimestamp_R < lasttimestamp_Y <  lasttimestamp_B)
+        {
+            Phase_Seq_flag = 0; //The Sequence is RYB
+        }
+
+        else if ((lasttimestamp_R < lasttimestamp_B) && (lasttimestamp_B < lasttimestamp_Y))
+        {
+            Phase_Seq_flag = 1; //The Sequence is RBY
+        }
+    }
+
+}
+
+
+void dww_Phase_Calculation()
+{
+    /*
+     * Added Voltage Lack Calculation logic
+     */
+    Sec_Phase_RY = (secondary.L2L_Volt_Phase_RY > secondary.L2L_Volt_Phase_YB) ? (secondary.L2L_Volt_Phase_RY - secondary.L2L_Volt_Phase_YB)
+                   : (secondary.L2L_Volt_Phase_YB - secondary.L2L_Volt_Phase_RY);
+    Sec_Phase_YB = (secondary.L2L_Volt_Phase_YB > secondary.L2L_Volt_Phase_BR) ? (secondary.L2L_Volt_Phase_YB - secondary.L2L_Volt_Phase_BR)
+                   : (secondary.L2L_Volt_Phase_BR - secondary.L2L_Volt_Phase_YB);
+    Sec_Phase_BR = (secondary.L2L_Volt_Phase_BR > secondary.L2L_Volt_Phase_RY) ? (secondary.L2L_Volt_Phase_BR - secondary.L2L_Volt_Phase_RY)
+                   : (secondary.L2L_Volt_Phase_RY - secondary.L2L_Volt_Phase_BR);
+    Pri_Phase_RY = (primary.L2L_Volt_Phase_RY > primary.L2L_Volt_Phase_YB) ? (primary.L2L_Volt_Phase_RY - primary.L2L_Volt_Phase_YB)
+                   : (primary.L2L_Volt_Phase_YB - primary.L2L_Volt_Phase_RY);
+    Pri_Phase_YB = (primary.L2L_Volt_Phase_YB > primary.L2L_Volt_Phase_BR) ? (primary.L2L_Volt_Phase_YB - primary.L2L_Volt_Phase_BR)
+                   : (primary.L2L_Volt_Phase_BR - primary.L2L_Volt_Phase_YB);
+    Pri_Phase_BR = (primary.L2L_Volt_Phase_BR > primary.L2L_Volt_Phase_RY) ? (primary.L2L_Volt_Phase_BR - primary.L2L_Volt_Phase_RY)
+                   : (primary.L2L_Volt_Phase_RY - primary.L2L_Volt_Phase_BR);
+
+    if ((Sec_Phase_RY > LACKING_VOLT) ||
+        (Sec_Phase_YB > LACKING_VOLT) ||
+        (Sec_Phase_BR > LACKING_VOLT) ||
+        (Pri_Phase_RY > LACKING_VOLT) ||
+        (Pri_Phase_YB > LACKING_VOLT) ||
+        (Pri_Phase_BR > LACKING_VOLT))
+    {
+        Volt_Lack_flag = 1;
+    }
+    else
+    {
+        if ((Sec_Phase_RY < (LACKING_VOLT - PHASE_LACK)) ||
+            (Sec_Phase_YB < (LACKING_VOLT - PHASE_LACK)) ||
+            (Sec_Phase_BR < (LACKING_VOLT - PHASE_LACK)) ||
+            (Pri_Phase_RY < (LACKING_VOLT - PHASE_LACK)) ||
+            (Pri_Phase_YB < (LACKING_VOLT - PHASE_LACK)) ||
+            (Pri_Phase_BR < (LACKING_VOLT - PHASE_LACK)))
+        {
+            Volt_Lack_flag = 0;
+        }
+    }
+
+    /*
+     * Added the Voltage Unbalance Logic
+     */
+    Sec_Phase_RY = (secondary.L2L_Volt_Phase_RY > secondary.RMS_Avg_Volt) ? (secondary.L2L_Volt_Phase_RY - secondary.RMS_Avg_Volt)
+                   : (secondary.RMS_Avg_Volt - secondary.L2L_Volt_Phase_RY);
+    Sec_Phase_YB = (secondary.L2L_Volt_Phase_YB > secondary.RMS_Avg_Volt) ? (secondary.L2L_Volt_Phase_YB - secondary.RMS_Avg_Volt)
+                   : (secondary.RMS_Avg_Volt - secondary.L2L_Volt_Phase_YB);
+    Sec_Phase_BR = (secondary.L2L_Volt_Phase_BR > secondary.RMS_Avg_Volt) ? (secondary.L2L_Volt_Phase_BR - secondary.RMS_Avg_Volt)
+                   : (secondary.RMS_Avg_Volt - secondary.L2L_Volt_Phase_BR);
+    Pri_Phase_RY = (primary.L2L_Volt_Phase_RY > primary.RMS_Avg_Volt) ? (primary.L2L_Volt_Phase_RY - primary.RMS_Avg_Volt)
+                   : (primary.RMS_Avg_Volt - primary.L2L_Volt_Phase_RY);
+    Pri_Phase_YB = (primary.L2L_Volt_Phase_YB > primary.RMS_Avg_Volt) ? (primary.L2L_Volt_Phase_YB - primary.RMS_Avg_Volt)
+                   : (primary.RMS_Avg_Volt - primary.L2L_Volt_Phase_YB);
+    Pri_Phase_BR = (primary.L2L_Volt_Phase_BR > primary.RMS_Avg_Volt) ? (primary.L2L_Volt_Phase_BR - primary.RMS_Avg_Volt)
+                   : (primary.RMS_Avg_Volt - primary.L2L_Volt_Phase_BR);
+
+    if ((Sec_Phase_RY * 100) > (secondary.RMS_Avg_Volt * UNBALANCE_RATE) ||
+        (Sec_Phase_YB * 100) > (secondary.RMS_Avg_Volt * UNBALANCE_RATE) ||
+        (Sec_Phase_BR * 100) > (secondary.RMS_Avg_Volt * UNBALANCE_RATE) ||
+        (Pri_Phase_RY * 100) > (secondary.RMS_Avg_Volt * UNBALANCE_RATE) ||
+        (Pri_Phase_YB * 100) > (secondary.RMS_Avg_Volt * UNBALANCE_RATE) ||
+        (Pri_Phase_BR * 100) > (secondary.RMS_Avg_Volt * UNBALANCE_RATE))
+    {
+        Volt_Unbalance_flag = 1;
+    }
+    else
+    {
+        Volt_Unbalance_flag = 0;
+    }
+
+    /*
+     * Added the Phase Loss Logic
+     */
+    if ((primary.L2L_Volt_Phase_RY < PHASE_LOSS) ||
+        (primary.L2L_Volt_Phase_YB < PHASE_LOSS) ||
+        (primary.L2L_Volt_Phase_BR < PHASE_LOSS) ||
+        (secondary.L2L_Volt_Phase_RY < PHASE_LOSS) ||
+        (secondary.L2L_Volt_Phase_YB < PHASE_LOSS) ||
+        (secondary.L2L_Volt_Phase_BR < PHASE_LOSS))
+    {
+        Phase_loss_flag = 1;
+    }
+    else
+    {
+        Phase_loss_flag = 0;
+    }
+
+}
+
+void dww_Power_Calculation(unsigned int reg)
+{
+    switch(reg)
+    {
+    case PRIMARY:
+    {
+        /*
+         * Calculation for the Primary KW
+         */
+        if (primary.RMS_Curr_Phase_R != 0 ||
+            primary.RMS_Curr_Phase_Y != 0 ||
+            primary.RMS_Curr_Phase_B != 0)
+        {
+            dwMathBuff = dwSumPhaseWatt[0] + dwSumPhaseWatt[1] + dwSumPhaseWatt[2];
+            dwMathBuff = ((unsigned long)dwMathBuff * 10) / (unsigned int)wGain_Kw;
+            primary.Total_KW = (dwMathBuff / 1000);
+            dwSumPhaseWatt[0] = 0;
+            dwSumPhaseWatt[1] = 0;
+            dwSumPhaseWatt[2] = 0;
+        }
+        else
+        {
+            primary.Total_KW = 0;
+            dwSumPhaseWatt[0] = 0;
+            dwSumPhaseWatt[1] = 0;
+            dwSumPhaseWatt[2] = 0;
+        }
+        /*
+         * Calculation for the Primary KVA
+         */
+        dwMathBuff = (((unsigned long)primary.L2N_Volt_Phase_R * primary.RMS_Curr_Phase_R) +
+                      ((unsigned long)primary.L2N_Volt_Phase_Y * primary.RMS_Curr_Phase_Y) +
+                      ((unsigned long)primary.L2N_Volt_Phase_B * primary.RMS_Curr_Phase_B));
+        primary.Total_KVA = (unsigned int)(dwMathBuff / 1000);
+
+        /*
+         * Calculation for the Primary KVAR
+         */
+        primary.Total_KVAR = sqrt((unsigned long)(primary.Total_KVA * primary.Total_KVA) -
+                                  (unsigned long)(primary.Total_KW * primary.Total_KW));
+
+        /*
+         * Calculation for the Total Power factor
+         */
+        if (primary.Total_KVA != 0)
+        {
+            primary.Total_PF = (unsigned int)(((unsigned long)primary.Total_KW * 100) / primary.Total_KVA);
+        }
+        else
+        {
+            primary.Total_PF = 0xFFFF;
+        }
+        break;
+    }
+    case SECONDARY:
+    {
+        /*
+         * Calculation for the KVA per phase and total KVA of the secondary
+         */
+        dwMathBuff = ((unsigned long)secondary.L2N_Volt_Phase_R * secondary.RMS_Curr_Phase_R);
+        secondary.KVA_Phase_R = (unsigned int)(dwMathBuff / 1000);
+
+        dwMathBuff = ((unsigned long)secondary.L2N_Volt_Phase_Y * secondary.RMS_Curr_Phase_Y);
+        secondary.KVA_Phase_Y = (unsigned int)(dwMathBuff / 1000);
+
+        dwMathBuff = ((unsigned long)secondary.L2N_Volt_Phase_B * secondary.RMS_Curr_Phase_B);
+        secondary.KVA_Phase_B = (unsigned int)(dwMathBuff / 1000);
+
+        secondary.Total_KVA = (secondary.KVA_Phase_R + secondary.KVA_Phase_Y + secondary.KVA_Phase_B);
+
+        /*
+         * Calculation for the KW per phase and Total KW of the Secondary
+         */
+        break;
+    }
+    }
+}
+
+#if 0
+//
+// Timer function (unchanged for now; adjust as per your timing requirements)
+//
+void dww_timer(void)
+{
+    if (demand_chk_1sec >= 270) // for 1 sec
+    {
+        sFlag->demand_chk_1sec = 1;
+        demand_chk_1sec = 0;
+        demand_chk_1hr++;
+    }
+    else
+    {
+        demand_chk_1sec++;
+    }
+
+    if(demand_chk_1hr >= 60) // Changed from 3600 to 60 for testing
+    {
+        sFlag->demand_chk_1hr = 1;
+        demand_chk_1hr = 0;
+        demand_chk_24hr++;
+    }
+
+    if(demand_chk_24hr >= 5) // Changed from 24 to 5 for testing
+    {
+        sFlag->demand_chk_24hr = 1;
+        demand_chk_24hr = 0;
+    }
+}
+
+//
+// Demand Calculation function (unchanged)
+//
+void dww_demand_Calc(void)
+{
+    int i;
+    if (sFlag->demand_chk_1sec == 1)
+    {
+                for (i = 0; i < MAX_CT_LENGTH; i++)
+        {
+            dw_CurrDemandSum[i] += primary.dww_channel[i].RMS;
+        }
+        sFlag->demand_chk_1sec = 0;
+        wDemandSumCntr[0]++;
+    }
+
+    if (sFlag->demand_chk_1hr == 1)
+    {
+        for (i = 0; i < MAX_CT_LENGTH; i++)
+        {
+            primary.dww_channel[i].CTCurrDemand_1hr = (unsigned int)(dw_CurrDemandSum[i] / wDemandSumCntr[0]);
+            dw_CurrDemandSum[i] = 0;
+        }
+        sFlag->demand_chk_1hr = 0;
+        wDemandSumCntr[0] = 0;
+    }
+
+    if (sFlag->demand_chk_24hr == 1)
+    {
+        for (i = 0; i < MAX_CT_LENGTH; i++)
+        {
+            primary.dww_channel[i].CTMaxCurrDemand_24hr = primary.dww_channel[i].CTMaxCurrDemand_1hr;
+            primary.dww_channel[i].CTMaxCurrDemand_1hr = 0;
+        }
+        sFlag->demand_chk_24hr = 0;
+    }
+}
+#endif

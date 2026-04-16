@@ -1,0 +1,43 @@
+/*
+ * hex_image.hexcmd  —  BU-Board hex2000 command file
+ *
+ * Produces a FLAT binary image of the BU application's flash area
+ * (Bank 0 sectors 8..127), with address gaps filled with 0xFFFF.
+ * Without --image, hex2000 concatenates sections back-to-back and
+ * destroys gaps — this is wrong for OTA, where the binary is written
+ * sequentially starting at the boot manager's APP_ENTRY_ADDR
+ * (0x082000) and later copied byte-for-byte into Bank 0.
+ *
+ * Address math:
+ *   C2000 is 16-bit word-addressable. hex2000 binary mode uses 8-bit
+ *   byte addresses. So word address 0x082000 = byte address 0x104000.
+ *
+ * Memory map (BU board, after sectors 0..7 reserved for boot manager):
+ *   word 0x082000 - 0x09FFFF   Application area (sectors 8..127, 120 KB)
+ *
+ * Tight range (recommended):
+ *   Last section in the .map file is .cinit, ending at word 0x85898.
+ *   Length in words = 0x85898 - 0x82000 = 0x3898
+ *   Length in bytes = 0x3898 * 2 = 0x7130
+ *   Rounded up to 0x7200 for a small headroom (~208 bytes).
+ *
+ *   When the firmware grows, recalc: open the .map file, find the
+ *   highest-address flash section (usually .cinit, sometimes .const
+ *   if .cinit is empty), compute end_word = origin + length, then
+ *   length_bytes = (end_word - 0x082000) * 2 rounded up to a 64-byte
+ *   CAN-FD boundary.
+ *
+ * Always-safe alternative (no maintenance ever, but ~120 KB transfer):
+ *   APPLICATION : o = 0x104000, l = 0x3C000, fill = 0xFFFF
+ *
+ * Usage:
+ *   hex2000 -o CPU1_FLASH/adc_ex2_soc_epwm.bin hex_image.hexcmd CPU1_FLASH/adc_ex2_soc_epwm.out
+ */
+
+--binary
+--image
+--order=LS
+
+ROMS {
+    APPLICATION : o = 0x104000, l = 0x7200, fill = 0xFFFF
+}

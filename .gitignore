@@ -1,0 +1,36 @@
+# Build artifacts
+CPU1_FLASH/
+CPU1_RAM/
+*.obj
+*.out
+*.map
+*.d
+*.opt
+*.bin
+*.lib
+
+# IDE settings
+.launches/
+.settings/
+.cproject
+.project
+.ccsproject
+RemoteSystemsTempFiles/
+targetConfigs/
+.jxbrowser.userdata/
+.metadata/
+dvt/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Claude
+.claude/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Temp files
+*.bak
