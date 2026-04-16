@@ -1,0 +1,431 @@
+******************************************************************************
+             TMS320C2000 Linker PC v22.6.1                     
+******************************************************************************
+>> Linked Tue Apr 14 17:33:59 2026
+
+OUTPUT FILE NAME:   <bu_boot_manager.out>
+ENTRY POINT SYMBOL: "code_start"  address: 00080000
+
+
+MEMORY CONFIGURATION
+
+         name            origin    length      used     unused   attr    fill
+----------------------  --------  ---------  --------  --------  ----  --------
+  BOOT_RSVD             00000002   00000126  00000000  00000126  RWIX
+  RAMM0                 00000128   000002d8  0000003a  0000029e  RWIX
+  RAMM1                 00000400   00000400  00000200  00000200  RWIX
+  RAMLS0                00008000   00000800  000001f6  0000060a  RWIX
+  RAMLS1                00008800   00000800  00000000  00000800  RWIX
+  BEGIN                 00080000   00000002  00000002  00000000  RWIX
+  BOOT_FLASH            00080002   00001ffe  00001fc7  00000037  RWIX
+  RESET                 003fffc0   00000002  00000000  00000002  RWIX
+
+
+SECTION ALLOCATION MAP
+
+ output                                  attributes/
+section   page    origin      length       input sections
+--------  ----  ----------  ----------   ----------------
+codestart 
+*          0    00080000    00000002     
+                  00080000    00000002     boot_codestartbranch.obj (codestart)
+
+.text      0    00080008    0000188d     
+                  00080008    000001c2     driverlib.lib : mcan.obj (.text:MCAN_msgRAMConfig)
+                  000801ca    00000189     FAPI_F28P55x_EABI_v4.00.00.lib : Program.obj (.text:Fapi_issueProgrammingCommand)
+                  00080353    0000017a                                    : Init.obj (.text:Fapi_initializeAPI)
+                  000804cd    00000123     driverlib.lib : sysctl.obj (.text:SysCtl_setClock)
+                  000805f0    00000122                   : mcan.obj (.text:MCAN_writeMsg)
+                  00080712    00000110     boot_manager.obj (.text:main)
+                  00080822    000000fe     driverlib.lib : sysctl.obj (.text:SysCtl_isPLLValid)
+                  00080920    000000f0                   : mcan.obj (.text:MCAN_init)
+                  00080a10    000000eb                   : gpio.obj (.text:GPIO_setAnalogMode)
+                  00080afb    000000d8     device.obj (.text:Device_enableAllPeripherals)
+                  00080bd3    000000c7     device.obj (.text:Device_init)
+                  00080c9a    000000b9     driverlib.lib : mcan.obj (.text:MCAN_setBitTime)
+                  00080d53    00000088     rts2800_fpu32_eabi.lib : fs_div28.asm.obj (.text)
+                  00080ddb    00000081     boot_manager.obj (.text:configureMCANA)
+                  00080e5c    00000073     driverlib.lib : sysctl.obj (.text:DCC_setCounterSeeds)
+                  00080ecf    0000006f     boot_manager.obj (.text:canSendMsg)
+                  00080f3e    00000065     driverlib.lib : sysctl.obj (.text:SysCtl_getClock)
+                  00080fa3    00000057                   : mcan.obj (.text:MCAN_writeMsgRam)
+                  00080ffa    00000052                   : gpio.obj (.text:GPIO_setPadConfig)
+                  0008104c    0000004d     boot_manager.obj (.text:computeCRC32)
+                  00081099    00000047     driverlib.lib : sysctl.obj (.text:SysCtl_selectOscSource)
+                  000810e0    00000046                   : sysctl.obj (.text:SysCtl_selectXTAL)
+                  00081126    00000045                   : sysctl.obj (.text:SysCtl_pollX1Counter)
+                  0008116b    00000044                   : pga.obj (.text:PGA_setOffsetTrimPMOS)
+                  000811af    00000041                   : pga.obj (.text:PGA_setOffsetTrimNMOS)
+                  000811f0    0000003a     FAPI_F28P55x_EABI_v4.00.00.lib : Async.obj (.text:Fapi_issueAsyncCommandWithAddress)
+                  0008122a    00000037     driverlib.lib : gpio.obj (.text:GPIO_setPinConfig)
+                  00081261    00000031                   : gpio.obj (.text:GPIO_setDirectionMode)
+                  00081292    00000030     rts2800_fpu32_eabi.lib : copy_decompress_lzss.c.obj (.text:decompress:lzss)
+                  000812c2    0000002c     boot_manager.obj (.text:GPIO_isPinValid)
+                  000812ee    0000002c     driverlib.lib : gpio.obj (.text:GPIO_isPinValid)
+                  0008131a    0000002c                   : mcan.obj (.text:MCAN_txBufAddReq)
+                  00081346    0000002b     rts2800_fpu32_eabi.lib : autoinit.c.obj (.text:__TI_auto_init_nobinit_nopinit)
+                  00081371    0000002a     FAPI_F28P55x_EABI_v4.00.00.lib : Utilities.obj (.text:Write_32bp)
+                  0008139b    00000029     boot_manager.obj (.text:SysCtl_setMCANClk)
+                  000813c4    00000029     rts2800_fpu32_eabi.lib : exit.c.obj (.text)
+                  000813ed    00000027     boot_manager.obj (.text:GPIO_writePin)
+                  00081414    00000026     FAPI_F28P55x_EABI_v4.00.00.lib : Utilities.obj (.text:Write_32)
+                  0008143a    00000025     driverlib.lib : sysctl.obj (.text:SysCtl_selectXTALSingleEnded)
+                  0008145f    00000024                   : sysctl.obj (.text:DCC_enableSingleShotMode)
+                  00081483    00000024     FAPI_F28P55x_EABI_v4.00.00.lib : Async.obj (.text:Fapi_issueAsyncCommand)
+                  000814a7    00000023     boot_manager.obj (.text:canSendDebug)
+                  000814ca    00000021     FAPI_F28P55x_EABI_v4.00.00.lib : FlashStateMachine.obj (.text:Fapi_setupBankSectorEnable)
+                  000814eb    0000001f     driverlib.lib : mcan.obj (.text:MCAN_isMemInitDone)
+                  0008150a    0000001e                   : sysctl.obj (.text:DCC_setCounter0ClkSource)
+                  00081528    0000001e                   : sysctl.obj (.text:DCC_setCounter1ClkSource)
+                  00081546    0000001d     rts2800_fpu32_eabi.lib : memcpy.c.obj (.text)
+                  00081563    0000001c     FAPI_F28P55x_EABI_v4.00.00.lib : FlashStateMachine.obj (.text:Fapi_CheckLinkPointers)
+                  0008157f    0000001a     driverlib.lib : sysctl.obj (.text:SysCtl_getLowSpeedClock)
+                  00081599    00000019                   : mcan.obj (.text:MCAN_setOpMode)
+                  000815b2    00000019                   : mcan.obj (.text:MCAN_writeProtectedRegAccessLock)
+                  000815cb    00000019                   : mcan.obj (.text:MCAN_writeProtectedRegAccessUnlock)
+                  000815e4    00000019                   : sysctl.obj (.text:SysCtl_setPLLSysClk)
+                  000815fd    00000017                   : mcan.obj (.text:HW_WR_FIELD32_RAW)
+                  00081614    00000017                   : mcan.obj (.text:MCAN_getOpMode)
+                  0008162b    00000017                   : pga.obj (.text:PGA_isBaseValid)
+                  00081642    00000017     device.obj (.text:SysCtl_enablePeripheral)
+                  00081659    00000017     driverlib.lib : sysctl.obj (.text:SysCtl_enablePeripheral)
+                  00081670    00000017     rts2800_fpu32_eabi.lib : boot28.asm.obj (.text)
+                  00081687    00000016     driverlib.lib : sysctl.obj (.text:DCC_disableDoneSignal)
+                  0008169d    00000016     boot_manager.obj (.text:ledInit)
+                  000816b3    00000015     driverlib.lib : sysctl.obj (.text:DCC_clearDoneFlag)
+                  000816c8    00000015                   : sysctl.obj (.text:DCC_clearErrorFlag)
+                  000816dd    00000015                   : sysctl.obj (.text:DCC_disableErrorSignal)
+                  000816f2    00000015                   : sysctl.obj (.text:DCC_isBaseValid)
+                  00081707    00000015                   : mcan.obj (.text:MCAN_isBaseValid)
+                  0008171c    00000014                   : sysctl.obj (.text:DCC_disableModule)
+                  00081730    00000014                   : sysctl.obj (.text:DCC_enableModule)
+                  00081744    00000014                   : mcan.obj (.text:MCAN_getDataSize)
+                  00081758    00000014                   : mcan.obj (.text:MCAN_getMsgObjSize)
+                  0008176c    00000013                   : mcan.obj (.text:MCAN_getTxBufReqPend)
+                  0008177f    00000013     boot_manager.obj (.text:canSendHello)
+                  00081792    00000011     FAPI_F28P55x_EABI_v4.00.00.lib : FlashStateMachine.obj (.text:Fapi_issueFsmCommand)
+                  000817a3    00000011     boot_manager.obj (.text:delayCycles)
+                  000817b4    00000010     FAPI_F28P55x_EABI_v4.00.00.lib : Utilities.obj (.text:Fapi_regReadback)
+                  000817c4    00000010     driverlib.lib : flash.obj (.text:Flash_isCtrlBaseValid)
+                  000817d4    00000010                   : flash.obj (.text:Flash_isECCBaseValid)
+                  000817e4    0000000e     boot_manager.obj (.text:ledSet)
+                  000817f2    0000000d     FAPI_F28P55x_EABI_v4.00.00.lib : FlashStateMachine.obj (.text:Fapi_checkFsmForReady)
+                  000817ff    0000000d     driverlib.lib : mcan.obj (.text:HW_RD_FIELD32_RAW)
+                  0008180c    0000000d     boot_manager.obj (.text:SysCtl_resetDevice)
+                  00081819    0000000d     device.obj (.text:SysCtl_setLowSpeedClock)
+                  00081826    0000000c     rts2800_fpu32_eabi.lib : args_main.c.obj (.text)
+                  00081832    0000000b     device.obj (.text:SysCtl_disableWatchdog)
+                  0008183d    0000000b     driverlib.lib : sysctl.obj (.text:SysCtl_isMCDClockFailureDetected)
+                  00081848    00000009     rts2800_fpu32_eabi.lib : _lock.c.obj (.text)
+                  00081851    00000008     boot_codestartbranch.obj (.text)
+                  00081859    00000008     rts2800_fpu32_eabi.lib : copy_decompress_none.c.obj (.text:decompress:none)
+                  00081861    00000007     device.obj (.text:ASysCtl_lockVREG)
+                  00081868    00000007     driverlib.lib : mcan.obj (.text:HW_RD_REG32_RAW)
+                  0008186f    00000007                   : mcan.obj (.text:HW_WR_REG32_RAW)
+                  00081876    00000007                   : sysctl.obj (.text:SysCtl_resetMCD)
+                  0008187d    00000007     device.obj (.text:__error__)
+                  00081884    00000006     FAPI_F28P55x_EABI_v4.00.00.lib : FlashStateMachine.obj (.text:Fapi_setActiveFlashBank)
+                  0008188a    00000004                                    : FlashStateMachine.obj (.text:Fapi_getFsmStatus)
+                  0008188e    00000004     boot_manager.obj (.text:jumpToApp)
+                  00081892    00000002     rts2800_fpu32_eabi.lib : pre_init.c.obj (.text)
+                  00081894    00000001                            : startup.c.obj (.text)
+
+.cinit     0    00081fa0    00000038     
+                  00081fa0    0000002f     (.cinit..data.load) [load image, compression = lzss]
+                  00081fcf    00000001     --HOLE-- [fill = 0]
+                  00081fd0    00000004     (__TI_handler_table)
+                  00081fd4    00000004     (__TI_cinit_table)
+
+.const     0    00081a90    0000050c     
+                  00081a90    00000200     boot_manager.obj (.const:crc32Table)
+                  00081c90    0000009b     driverlib.lib : flash.obj (.const:.string)
+                  00081d2b    00000001     --HOLE-- [fill = 0]
+                  00081d2c    0000009a                   : sysctl.obj (.const:.string)
+                  00081dc6    00000098                   : gpio.obj (.const:.string)
+                  00081e5e    00000059     device.obj (.const:.string)
+                  00081eb7    00000001     --HOLE-- [fill = 0]
+                  00081eb8    0000004c     driverlib.lib : mcan.obj (.const:.string)
+                  00081f04    0000004b                   : pga.obj (.const:.string)
+                  00081f4f    00000001     --HOLE-- [fill = 0]
+                  00081f50    00000044     boot_manager.obj (.const:.string)
+                  00081f94    00000008     boot_manager.obj (.const:$P$T0$1)
+
+.reset     0    003fffc0    00000000     DSECT
+
+.stack     0    00000400    00000200     UNINITIALIZED
+                  00000400    00000200     --HOLE--
+
+.init_array 
+*          0    00080008    00000000     UNINITIALIZED
+
+.data      0    00000128    0000003a     UNINITIALIZED
+                  00000128    00000020     driverlib.lib : mcan.obj (.data:dataSize)
+                  00000148    00000010                   : mcan.obj (.data:objSize)
+                  00000158    00000006     rts2800_fpu32_eabi.lib : exit.c.obj (.data)
+                  0000015e    00000002                            : _lock.c.obj (.data:_lock)
+                  00000160    00000002                            : _lock.c.obj (.data:_unlock)
+
+.TI.ramfunc 
+*          0    00081898    000001f6     RUN ADDR = 00008000
+                  00081898    000000b5     boot_manager.obj (.TI.ramfunc:copyBank2ToBank0)
+                  0008194d    00000036     driverlib.lib : flash.obj (.TI.ramfunc:Flash_initModule)
+                  00081983    00000030     boot_manager.obj (.TI.ramfunc:programEightWords)
+                  000819b3    0000002a     boot_manager.obj (.TI.ramfunc:eraseSector)
+                  000819dd    00000022     driverlib.lib : flash.obj (.TI.ramfunc:Flash_setWaitstates)
+                  000819ff    00000018                   : flash.obj (.TI.ramfunc:Flash_disableCache)
+                  00081a17    00000017                   : flash.obj (.TI.ramfunc:Flash_disablePrefetch)
+                  00081a2e    00000016                   : flash.obj (.TI.ramfunc:Flash_enableCache)
+                  00081a44    00000016                   : flash.obj (.TI.ramfunc:Flash_enableECC)
+                  00081a5a    00000016                   : flash.obj (.TI.ramfunc:Flash_enablePrefetch)
+                  00081a70    00000014     boot_manager.obj (.TI.ramfunc:clearFSM)
+                  00081a84    00000006     boot_manager.obj (.TI.ramfunc:clearBootFlag)
+                  00081a8a    00000004     driverlib.lib : sysctl.obj (.TI.ramfunc)
+
+MODULE SUMMARY
+
+       Module                       code   ro data   rw data
+       ------                       ----   -------   -------
+    .\
+       boot_manager.obj             1431   588       0      
+       boot_codestartbranch.obj     10     0         0      
+    +--+----------------------------+------+---------+---------+
+       Total:                       1441   588       0      
+                                                            
+    .\device\
+       device.obj                   476    89        0      
+    +--+----------------------------+------+---------+---------+
+       Total:                       476    89        0      
+                                                            
+    ../FAPI_F28P55x_EABI_v4.00.00.lib
+       Program.obj                  393    0         0      
+       Init.obj                     378    0         0      
+       FlashStateMachine.obj        101    0         0      
+       Utilities.obj                96     0         0      
+       Async.obj                    94     0         0      
+    +--+----------------------------+------+---------+---------+
+       Total:                       1062   0         0      
+                                                            
+    C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/ccs/Debug/driverlib.lib
+       mcan.obj                     1555   76        48     
+       sysctl.obj                   1350   154       0      
+       gpio.obj                     465    152       0      
+       flash.obj                    434    155       0      
+       pga.obj                      156    75        0      
+    +--+----------------------------+------+---------+---------+
+       Total:                       3960   612       48     
+                                                            
+    C:\ti\ccs1281\ccs\tools\compiler\ti-cgt-c2000_22.6.1.LTS\lib\rts2800_fpu32_eabi.lib
+       fs_div28.asm.obj             136    0         0      
+       copy_decompress_lzss.c.obj   48     0         0      
+       exit.c.obj                   41     0         6      
+       autoinit.c.obj               43     0         0      
+       memcpy.c.obj                 29     0         0      
+       boot28.asm.obj               23     0         0      
+       _lock.c.obj                  9      0         4      
+       args_main.c.obj              12     0         0      
+       copy_decompress_none.c.obj   8      0         0      
+       pre_init.c.obj               2      0         0      
+       startup.c.obj                1      0         0      
+    +--+----------------------------+------+---------+---------+
+       Total:                       352    0         10     
+                                                            
+       Stack:                       0      0         512    
+       Linker Generated:            0      55        0      
+    +--+----------------------------+------+---------+---------+
+       Grand Total:                 7291   1344      570    
+
+
+LINKER GENERATED COPY TABLES
+
+__TI_cinit_table @ 00081fd4 records: 1, size/record: 4, table size: 4
+	.data: load addr=00081fa0, load size=0000002f bytes, run addr=00000128, run size=0000003a bytes, compression=lzss
+
+
+LINKER GENERATED HANDLER TABLE
+
+__TI_handler_table @ 00081fd0 records: 2, size/record: 2, table size: 4
+	index: 0, handler: __TI_decompress_lzss
+	index: 1, handler: __TI_decompress_none
+
+
+GLOBAL DATA SYMBOLS: SORTED BY DATA PAGE
+
+address     data page           name
+--------    ----------------    ----
+00000158       5 (00000140)     __TI_enable_exit_profile_output
+0000015a       5 (00000140)     __TI_cleanup_ptr
+0000015c       5 (00000140)     __TI_dtors_ptr
+0000015e       5 (00000140)     _lock
+00000160       5 (00000140)     _unlock
+
+00000400      10 (00000400)     __stack
+
+
+GLOBAL SYMBOLS: SORTED ALPHABETICALLY BY Name 
+
+page  address   name                             
+----  -------   ----                             
+0     000813c4  C$$EXIT                          
+0     00080afb  Device_enableAllPeripherals      
+0     00080bd3  Device_init                      
+0     00081563  Fapi_CheckLinkPointers           
+0     000817f2  Fapi_checkFsmForReady            
+0     0008188a  Fapi_getFsmStatus                
+0     00080353  Fapi_initializeAPI               
+0     00081483  Fapi_issueAsyncCommand           
+0     000811f0  Fapi_issueAsyncCommandWithAddress
+0     00081792  Fapi_issueFsmCommand             
+0     000801ca  Fapi_issueProgrammingCommand     
+0     000817b4  Fapi_regReadback                 
+0     00081884  Fapi_setActiveFlashBank          
+0     000814ca  Fapi_setupBankSectorEnable       
+0     000080b5  Flash_initModule                 
+0     00080a10  GPIO_setAnalogMode               
+0     00081261  GPIO_setDirectionMode            
+0     00080ffa  GPIO_setPadConfig                
+0     0008122a  GPIO_setPinConfig                
+0     00081758  MCAN_getMsgObjSize               
+0     00081614  MCAN_getOpMode                   
+0     0008176c  MCAN_getTxBufReqPend             
+0     00080920  MCAN_init                        
+0     000814eb  MCAN_isMemInitDone               
+0     00080008  MCAN_msgRAMConfig                
+0     00080c9a  MCAN_setBitTime                  
+0     00081599  MCAN_setOpMode                   
+0     0008131a  MCAN_txBufAddReq                 
+0     00080fa3  MCAN_writeMsgRam                 
+0     000811af  PGA_setOffsetTrimNMOS            
+0     0008116b  PGA_setOffsetTrimPMOS            
+abs   000001f6  RamfuncsLoadSize                 
+abs   00081898  RamfuncsLoadStart                
+abs   00008000  RamfuncsRunStart                 
+0     000081f2  SysCtl_delay                     
+0     00080f3e  SysCtl_getClock                  
+0     0008157f  SysCtl_getLowSpeedClock          
+0     00080822  SysCtl_isPLLValid                
+0     00081099  SysCtl_selectOscSource           
+0     000810e0  SysCtl_selectXTAL                
+0     0008143a  SysCtl_selectXTALSingleEnded     
+0     000804cd  SysCtl_setClock                  
+0     00081414  Write_32                         
+0     00081371  Write_32bp                       
+0     00081fd4  __TI_CINIT_Base                  
+0     00081fd8  __TI_CINIT_Limit                 
+0     00081fd8  __TI_CINIT_Warm                  
+0     00081fd0  __TI_Handler_Table_Base          
+0     00081fd4  __TI_Handler_Table_Limit         
+0     00000600  __TI_STACK_END                   
+abs   00000200  __TI_STACK_SIZE                  
+0     00081346  __TI_auto_init_nobinit_nopinit   
+0     0000015a  __TI_cleanup_ptr                 
+0     00081292  __TI_decompress_lzss             
+0     00081859  __TI_decompress_none             
+0     0000015c  __TI_dtors_ptr                   
+0     00000158  __TI_enable_exit_profile_output  
+abs   ffffffff  __TI_pprof_out_hndl              
+abs   ffffffff  __TI_prof_data_size              
+abs   ffffffff  __TI_prof_data_start             
+0     00080d53  __c28xabi_divf                   
+n/a   UNDEFED   __c_args__                       
+0     0008187d  __error__                        
+0     00000400  __stack                          
+0     00081826  _args_main                       
+0     00081670  _c_int00                         
+0     0000015e  _lock                            
+0     00081850  _nop                             
+0     0008184c  _register_lock                   
+0     00081848  _register_unlock                 
+0     00081894  _system_post_cinit               
+0     00081892  _system_pre_init                 
+0     00000160  _unlock                          
+0     000813c4  abort                            
+0     00080000  code_start                       
+0     000813c6  exit                             
+0     00080712  main                             
+0     00081546  memcpy                           
+
+
+GLOBAL SYMBOLS: SORTED BY Symbol Address 
+
+page  address   name                             
+----  -------   ----                             
+0     00000158  __TI_enable_exit_profile_output  
+0     0000015a  __TI_cleanup_ptr                 
+0     0000015c  __TI_dtors_ptr                   
+0     0000015e  _lock                            
+0     00000160  _unlock                          
+0     00000400  __stack                          
+0     00000600  __TI_STACK_END                   
+0     000080b5  Flash_initModule                 
+0     000081f2  SysCtl_delay                     
+0     00080000  code_start                       
+0     00080008  MCAN_msgRAMConfig                
+0     000801ca  Fapi_issueProgrammingCommand     
+0     00080353  Fapi_initializeAPI               
+0     000804cd  SysCtl_setClock                  
+0     00080712  main                             
+0     00080822  SysCtl_isPLLValid                
+0     00080920  MCAN_init                        
+0     00080a10  GPIO_setAnalogMode               
+0     00080afb  Device_enableAllPeripherals      
+0     00080bd3  Device_init                      
+0     00080c9a  MCAN_setBitTime                  
+0     00080d53  __c28xabi_divf                   
+0     00080f3e  SysCtl_getClock                  
+0     00080fa3  MCAN_writeMsgRam                 
+0     00080ffa  GPIO_setPadConfig                
+0     00081099  SysCtl_selectOscSource           
+0     000810e0  SysCtl_selectXTAL                
+0     0008116b  PGA_setOffsetTrimPMOS            
+0     000811af  PGA_setOffsetTrimNMOS            
+0     000811f0  Fapi_issueAsyncCommandWithAddress
+0     0008122a  GPIO_setPinConfig                
+0     00081261  GPIO_setDirectionMode            
+0     00081292  __TI_decompress_lzss             
+0     0008131a  MCAN_txBufAddReq                 
+0     00081346  __TI_auto_init_nobinit_nopinit   
+0     00081371  Write_32bp                       
+0     000813c4  C$$EXIT                          
+0     000813c4  abort                            
+0     000813c6  exit                             
+0     00081414  Write_32                         
+0     0008143a  SysCtl_selectXTALSingleEnded     
+0     00081483  Fapi_issueAsyncCommand           
+0     000814ca  Fapi_setupBankSectorEnable       
+0     000814eb  MCAN_isMemInitDone               
+0     00081546  memcpy                           
+0     00081563  Fapi_CheckLinkPointers           
+0     0008157f  SysCtl_getLowSpeedClock          
+0     00081599  MCAN_setOpMode                   
+0     00081614  MCAN_getOpMode                   
+0     00081670  _c_int00                         
+0     00081758  MCAN_getMsgObjSize               
+0     0008176c  MCAN_getTxBufReqPend             
+0     00081792  Fapi_issueFsmCommand             
+0     000817b4  Fapi_regReadback                 
+0     000817f2  Fapi_checkFsmForReady            
+0     00081826  _args_main                       
+0     00081848  _register_unlock                 
+0     0008184c  _register_lock                   
+0     00081850  _nop                             
+0     00081859  __TI_decompress_none             
+0     0008187d  __error__                        
+0     00081884  Fapi_setActiveFlashBank          
+0     0008188a  Fapi_getFsmStatus                
+0     00081892  _system_pre_init                 
+0     00081894  _system_post_cinit               
+0     00081fd0  __TI_Handler_Table_Base          
+0     00081fd4  __TI_CINIT_Base                  
+0     00081fd4  __TI_Handler_Table_Limit         
+0     00081fd8  __TI_CINIT_Limit                 
+0     00081fd8  __TI_CINIT_Warm                  
+abs   000001f6  RamfuncsLoadSize                 
+abs   00000200  __TI_STACK_SIZE                  
+abs   00008000  RamfuncsRunStart                 
+abs   00081898  RamfuncsLoadStart                
+abs   ffffffff  __TI_pprof_out_hndl              
+abs   ffffffff  __TI_prof_data_size              
+abs   ffffffff  __TI_prof_data_start             
+n/a   UNDEFED   __c_args__                       
+
+[78 symbols]

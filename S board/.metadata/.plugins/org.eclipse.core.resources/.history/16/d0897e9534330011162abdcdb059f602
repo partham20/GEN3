@@ -1,0 +1,111 @@
+# Boot Manager — F28P55x
+
+Brick-proof boot manager for OTA firmware updates. Lives in Bank 0 Sectors 0-7 (8KB).
+Never erased by OTA — loaded once via JTAG.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `boot_manager.c` | Main logic (~200 lines) — flag check, CRC verify, copy, jump |
+| `boot_manager_lnk.cmd` | Linker — constrains all code to sectors 0-7 (8KB), Flash API runs from RAM |
+| `boot_codestartbranch.asm` | Entry at 0x080000 — disable watchdog, branch to C runtime |
+| `28p55x_flash_api_lnk_APP.cmd` | **Updated app linker** — app starts at 0x082000, reserves sectors 0-7 |
+
+## CCS Project Setup
+
+### Step 1: Create New CCS Project
+
+1. **File → New → CCS Project**
+2. Target: `TMS320F28P550SG9`
+3. Project name: `boot_manager`
+4. Compiler: TI v22.6.1.LTS
+5. Project type: Empty project
+6. Click Finish
+
+### Step 2: Add Files
+
+1. Copy `boot_manager.c`, `boot_codestartbranch.asm`, `boot_manager_lnk.cmd` into the project
+2. Copy `FAPI_F28P55x_EABI_v4.00.00.lib` from the app project into this project
+3. Delete the auto-generated linker .cmd file (if any)
+
+### Step 3: Configure Build Settings
+
+**Properties → Build → C2000 Compiler → Include Options:**
+- Add path to C2000Ware driverlib: `${C2000WARE}/driverlib/f28p55x/driverlib`
+- Add path to device headers: `${C2000WARE}/device_support/f28p55x/common/include`
+- Add path to Flash API headers (where `FlashTech_F28P55x_C28x.h` lives)
+
+**Properties → Build → C2000 Compiler → Predefined Symbols:**
+- Add: `_FLASH`
+- Add: `CPU1`
+
+**Properties → Build → C2000 Linker → Basic Options:**
+- Entry point (-e): `code_start`
+- Stack size: `0x200` (512 bytes — boot manager uses minimal stack)
+
+**Properties → Build → C2000 Linker → File Search Path:**
+- Add: path to `FAPI_F28P55x_EABI_v4.00.00.lib`
+- Add: path to driverlib library (`.lib`)
+
+### Step 4: Build
+
+- Select **CPU1_FLASH** configuration
+- Build (Ctrl+B)
+- Verify in .map file that all .text is within `0x080000-0x081FFF`
+
+### Step 5: Flash via JTAG
+
+1. Connect XDS110
+2. Debug → Load boot_manager.out
+3. Run — verify it jumps to 0x082000 (app entry)
+
+**IMPORTANT: After loading the boot manager, you must also load the app**
+with the updated linker file (`28p55x_flash_api_lnk_APP.cmd`).
+
+## How to Update the App Project
+
+1. In the S-Board CCS project, replace `28p55x_flash_api_lnk.cmd` with `28p55x_flash_api_lnk_APP.cmd`
+2. Rename it to `28p55x_flash_api_lnk.cmd` (or update the project to reference the new name)
+3. Rebuild — the app now starts at 0x082000 instead of 0x080000
+4. The .bin file generated for OTA will also be linked at 0x082000
+
+## Size Budget
+
+The boot manager uses sectors 0-7 (8KB). Breakdown:
+
+| Component | Approximate Size |
+|-----------|-----------------|
+| boot_manager.c code | ~400 words |
+| CRC32 lookup table | 512 words |
+| Flash API library (RAM copy image) | ~1500 words |
+| C runtime + cinit | ~100 words |
+| **Total** | **~2500 words (~5KB)** |
+
+Fits comfortably in 8KB with room to spare.
+
+## Boot Flow
+
+```
+Power on → ROM bootloader → 0x080000
+    │
+    ▼
+Boot Manager (this project)
+    │
+    ├── Read Bank 3 flag
+    │   Flag == 0xA5A5?
+    │       │
+    │   NO  │  YES
+    │   │   ▼
+    │   │  Verify CRC32 of Bank 2
+    │   │   │
+    │   │   ├── CRC OK → Erase Bank 0 (4-127)
+    │   │   │             Copy Bank 2 → Bank 0
+    │   │   │             Clear flag
+    │   │   │             Reset → boots again → flag cleared → jumps to app
+    │   │   │
+    │   │   └── CRC FAIL → Clear flag → fall through
+    │   │
+    │   ▼
+    └── Jump to 0x082000 (application)
+```

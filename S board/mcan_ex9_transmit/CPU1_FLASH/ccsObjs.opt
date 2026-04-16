@@ -1,0 +1,9 @@
+"./syscfg/board.obj"
+"./syscfg/c2000ware_libraries.obj"
+"./mcan_ex9_transmit.obj"
+"./device/device.obj"
+"./device/f28p55x_codestartbranch.obj"
+"../28p55x_generic_flash_lnk.cmd"
+"C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/ccs/Debug/driverlib.lib"
+-lc2000ware_libraries.cmd.genlibs
+-llibc.a

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="ImportExportAction">
+		<item key="ImportExportPage.STORE_SELECTED_IMPORT_WIZARD_ID" value="com.ti.ccstudio.project.ui.wizards.importexport.ImportCCSProjectWizard_2"/>
+		<list key="ImportExportPage.STORE_EXPANDED_IMPORT_CATEGORIES">
+			<item value="org.eclipse.cdt.ui.importWizardCategory"/>
+		</list>
+	</section>
+	<section name="MemoryDumperFillAction">
+		<item key="com.ti.ccstudio.system.setup.ui.editors.connectionName" value="Texas Instruments XDS110 USB Debug Probe"/>
+		<item key="com.ti.ccstudio.system.setup.ui.editors.connectionType" value="TIXDS110"/>
+	</section>
+	<section name="MemoryDumperSaveAction">
+		<item key="MemoryDumperFileSelectionPage.STORE_FILE_PATH_ID" value="C:\Users\parthasarathy.m\Desktop\b.dat"/>
+		<item key="MemoryDumperFileSelectionPage.STORE_FILETYPE_ID" value="TI Data"/>
+		<item key="MemoryDumperFileSelectionPage.STORE_USE_FILE_HEADER" value="false"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_FILE_FORMAT_NAME_ID" value="8"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_FILE_FORMAT_TYPE_ID" value="16-Bit Hex - TI Style"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_ADDRESS_EXPRESSION_ID" value="0x80000"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_SIZE_ID" value="0x8000"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_PAGE_ID" value="Data"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_SWAP_ID" value="false"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_TYPE_SIZE_ID" value="0"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_TYPE_SIZE_VALUE_ID" value="8"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_APPEND_ID" value="false"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_SPECIFY_DATA_DIMENSION_SIZE_ID" value="false"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_SPECIFY_DATA_BLOCK_SIZE_ID" value="true"/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_ROW_COUNT_ID" value=""/>
+		<item key="MemoryDumperMemoryBlockPage.STORE_COLUMN_COUNT_ID" value=""/>
+		<list key="MemoryDumperMemoryBlockPage.STORE_ADDRESS_VALUE_ID">
+			<item value="80000"/>
+		</list>
+		<list key="MemoryDumperMemoryBlockPage.STORE_SIZE_VALUE_ID">
+			<item value="8000"/>
+		</list>
+	</section>
+</section>

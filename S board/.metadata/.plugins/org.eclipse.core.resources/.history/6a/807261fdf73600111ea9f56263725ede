@@ -1,0 +1,197 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+SHELL = cmd.exe
+
+# Add inputs and outputs from these tool invocations to the build variables 
+CMD_SRCS += \
+../28p55x_flash_api_lnk.cmd \
+
+SYSCFG_SRCS += \
+../adc_ex2_soc_epwm.syscfg 
+
+LIB_SRCS += \
+../FAPI_F28P55x_EABI_v4.00.00.lib \
+../driverlib.lib 
+
+C_SRCS += \
+../adc_ex2_soc_epwm.c \
+./syscfg/board.c \
+./syscfg/c2000ware_libraries.c \
+../bu_board.c \
+../can_driver.c \
+../flash_driver.c \
+../i2c_sboard.c \
+../i2c_scanner.c \
+../isr.c \
+../m_board.c \
+../metro.c \
+../pdu_manager.c \
+../phase_detection.c \
+../runtime.c \
+../runtimedata.c \
+../s_board_adc.c \
+../s_board_runtime_timing.c \
+../s_board_runtime_transmission.c \
+../time_slot.c \
+../timer_driver.c 
+
+GEN_FILES += \
+./syscfg/board.c \
+./syscfg/board.opt \
+./syscfg/c2000ware_libraries.opt \
+./syscfg/c2000ware_libraries.c 
+
+GEN_MISC_DIRS += \
+./syscfg 
+
+C_DEPS += \
+./adc_ex2_soc_epwm.d \
+./syscfg/board.d \
+./syscfg/c2000ware_libraries.d \
+./bu_board.d \
+./can_driver.d \
+./flash_driver.d \
+./i2c_sboard.d \
+./i2c_scanner.d \
+./isr.d \
+./m_board.d \
+./metro.d \
+./pdu_manager.d \
+./phase_detection.d \
+./runtime.d \
+./runtimedata.d \
+./s_board_adc.d \
+./s_board_runtime_timing.d \
+./s_board_runtime_transmission.d \
+./time_slot.d \
+./timer_driver.d 
+
+GEN_OPTS += \
+./syscfg/board.opt \
+./syscfg/c2000ware_libraries.opt 
+
+OBJS += \
+./adc_ex2_soc_epwm.obj \
+./syscfg/board.obj \
+./syscfg/c2000ware_libraries.obj \
+./bu_board.obj \
+./can_driver.obj \
+./flash_driver.obj \
+./i2c_sboard.obj \
+./i2c_scanner.obj \
+./isr.obj \
+./m_board.obj \
+./metro.obj \
+./pdu_manager.obj \
+./phase_detection.obj \
+./runtime.obj \
+./runtimedata.obj \
+./s_board_adc.obj \
+./s_board_runtime_timing.obj \
+./s_board_runtime_transmission.obj \
+./time_slot.obj \
+./timer_driver.obj 
+
+GEN_MISC_FILES += \
+./syscfg/board.h \
+./syscfg/board.cmd.genlibs \
+./syscfg/board.json \
+./syscfg/pinmux.csv \
+./syscfg/epwm.dot \
+./syscfg/adc.dot \
+./syscfg/c2000ware_libraries.cmd.genlibs \
+./syscfg/c2000ware_libraries.h \
+./syscfg/clocktree.h 
+
+GEN_MISC_DIRS__QUOTED += \
+"syscfg" 
+
+OBJS__QUOTED += \
+"adc_ex2_soc_epwm.obj" \
+"syscfg\board.obj" \
+"syscfg\c2000ware_libraries.obj" \
+"bu_board.obj" \
+"can_driver.obj" \
+"flash_driver.obj" \
+"i2c_sboard.obj" \
+"i2c_scanner.obj" \
+"isr.obj" \
+"m_board.obj" \
+"metro.obj" \
+"pdu_manager.obj" \
+"phase_detection.obj" \
+"runtime.obj" \
+"runtimedata.obj" \
+"s_board_adc.obj" \
+"s_board_runtime_timing.obj" \
+"s_board_runtime_transmission.obj" \
+"time_slot.obj" \
+"timer_driver.obj" 
+
+GEN_MISC_FILES__QUOTED += \
+"syscfg\board.h" \
+"syscfg\board.cmd.genlibs" \
+"syscfg\board.json" \
+"syscfg\pinmux.csv" \
+"syscfg\epwm.dot" \
+"syscfg\adc.dot" \
+"syscfg\c2000ware_libraries.cmd.genlibs" \
+"syscfg\c2000ware_libraries.h" \
+"syscfg\clocktree.h" 
+
+C_DEPS__QUOTED += \
+"adc_ex2_soc_epwm.d" \
+"syscfg\board.d" \
+"syscfg\c2000ware_libraries.d" \
+"bu_board.d" \
+"can_driver.d" \
+"flash_driver.d" \
+"i2c_sboard.d" \
+"i2c_scanner.d" \
+"isr.d" \
+"m_board.d" \
+"metro.d" \
+"pdu_manager.d" \
+"phase_detection.d" \
+"runtime.d" \
+"runtimedata.d" \
+"s_board_adc.d" \
+"s_board_runtime_timing.d" \
+"s_board_runtime_transmission.d" \
+"time_slot.d" \
+"timer_driver.d" 
+
+GEN_FILES__QUOTED += \
+"syscfg\board.c" \
+"syscfg\board.opt" \
+"syscfg\c2000ware_libraries.opt" \
+"syscfg\c2000ware_libraries.c" 
+
+C_SRCS__QUOTED += \
+"../adc_ex2_soc_epwm.c" \
+"./syscfg/board.c" \
+"./syscfg/c2000ware_libraries.c" \
+"../bu_board.c" \
+"../can_driver.c" \
+"../flash_driver.c" \
+"../i2c_sboard.c" \
+"../i2c_scanner.c" \
+"../isr.c" \
+"../m_board.c" \
+"../metro.c" \
+"../pdu_manager.c" \
+"../phase_detection.c" \
+"../runtime.c" \
+"../runtimedata.c" \
+"../s_board_adc.c" \
+"../s_board_runtime_timing.c" \
+"../s_board_runtime_transmission.c" \
+"../time_slot.c" \
+"../timer_driver.c" 
+
+SYSCFG_SRCS__QUOTED += \
+"../adc_ex2_soc_epwm.syscfg" 
+
+

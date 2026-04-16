@@ -1,0 +1,8 @@
+-I"C:/ti/c2000/C2000Ware_5_04_00_00/libraries/dsp/FPU/c28/include"
+--define=FFT_ALIGN=1024
+
+--abi=eabi
+--float_support=fpu32
+--tmu_support=tmu1
+
+-I"C:/ti/c2000/C2000Ware_5_04_00_00/libraries/math/FPUfastRTS/c28/include"

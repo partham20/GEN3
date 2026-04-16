@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(cd /mnt/d/GEN3/'S board'/adc_ex2_soc_epwm)",
+      "Bash(git config:*)"
+    ]
+  }
+}

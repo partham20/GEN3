@@ -1,0 +1,10 @@
+"./MCAN_Boot.obj"
+"./ex_4_cpu1brom_pll.obj"
+"./flash_kernel_ex4_boot.obj"
+"./flash_kernel_ex4_can_flash_kernel.obj"
+"./flash_kernel_ex4_codestartbranch.obj"
+"./device/device.obj"
+"../FAPI_F28P55x_EABI_v4.00.00.lib"
+"C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/ccs/Debug/driverlib.lib"
+"../ex_4_ram_lnk.cmd"
+-llibc.a

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Rename resource &apos;adc_ex2_soc_epwm/i2c_sboard.c&apos; to &apos;i2c_sboard.bk&apos;" description="Rename resource &apos;i2c_sboard.c&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="i2c_sboard.c" name="i2c_sboard.bk" stamp="1771589859737" updateReferences="true"/>&#x0A;<refactoring comment="Rename resource &apos;adc_ex2_soc_epwm/i2c_sboard.h&apos; to &apos;i2c_sboard.bkh&apos;" description="Rename resource &apos;i2c_sboard.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="i2c_sboard.h" name="i2c_sboard.bkh" stamp="1771589878122" updateReferences="true"/>
+</session>

@@ -1,0 +1,6 @@
+"./boot_codestartbranch.obj"
+"./boot_manager.obj"
+"./device/device.obj"
+"../boot_manager_lnk.cmd"
+"C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/ccs/Debug/driverlib.lib"
+-llibc.a

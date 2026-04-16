@@ -1,0 +1,8 @@
+
+**** Build of configuration CPU1_FLASH for project adc_ex2_soc_epwm ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k -j 20 all -O 
+ 
+gmake[1]: 'adc_ex2_soc_epwm.out' is up to date.
+
+**** Build Finished ****

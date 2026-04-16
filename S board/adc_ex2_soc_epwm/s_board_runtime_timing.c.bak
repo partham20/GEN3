@@ -1,0 +1,103 @@
+/**
+ * @file s_board_runtime_timing.c
+ * @brief S Board runtime voltage transmission and sync timing system
+ * @details Uses CPU Timer1 for 200ms voltage transmission and Timer2 for 20ms sync toggle
+ */
+
+#include "s_board_runtime_timing.h"
+#include "runtime.h"
+#include "bu_board.h"
+#include "metro.h"
+#include "runtimedata.h"
+
+// Timing control variables
+volatile bool voltageTransmissionTrigger = false;
+volatile bool syncToggleTrigger = false;
+volatile uint32_t syncToggleState = 0;
+int c1,c2,c3,sToBuBoardSpeedIn20ms;
+
+bool Ms200Passed = false;
+
+/**
+ * @brief Initialize runtime timing system
+ * @details Sets up Timer1 (200ms) and Timer2 (20ms) with 150MHz clock
+ */
+void initRuntimeTiming(void)
+{
+
+    // Configure GPIO28 for sync signal output
+    GPIO_setPadConfig(28, GPIO_PIN_TYPE_STD);
+    GPIO_setDirectionMode(28, GPIO_DIR_MODE_OUT);
+    GPIO_setQualificationMode(28, GPIO_QUAL_SYNC);
+    GPIO_writePin(28, 0);  // Initialize sync signal low
+
+    // Initialize sync state
+    syncToggleState = 0;
+}
+
+/**
+ * @brief Start runtime timing system
+ */
+void startRuntimeTiming(void)
+{
+    // Start both timers simultaneously for synchronized operation
+    CPUTimer_startTimer(CPUTIMER1_BASE);
+    CPUTimer_startTimer(CPUTIMER2_BASE);
+}
+
+/**
+ * @brief Stop runtime timing system
+ */
+void stopRuntimeTiming(void)
+{
+    CPUTimer_stopTimer(CPUTIMER1_BASE);
+    CPUTimer_stopTimer(CPUTIMER2_BASE);
+}
+
+/**
+ * @brief Timer1 ISR - 200ms voltage buffer transmission
+ */
+// __interrupt void cpuTimer1ISR(void)
+
+// {
+//     c1++;
+//     voltageTransmissionTrigger = true;
+
+//    sendVoltageBuffersToAllBUBoards();
+//     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
+// }
+
+/**
+ * @brief Timer2 ISR - 20ms sync signal toggle -sin
+ */
+__interrupt void cpuTimer2ISR(void)
+{
+    c2++;
+    c3++;
+    // syncCANSignal();
+
+
+    // GPIO_togglePin(28);
+
+    if (c2 == 10)//sToBuBoardSpeedIn20ms)
+{    
+    
+    Ms200Passed = true;
+
+ 
+    c2=0;
+}
+
+   if (c3 == 50)
+{
+       populateInputParameters();
+                    populateOutputParameters();
+       processSBoardRuntimeToMBoard();
+    c3=0;
+}
+
+
+    Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
+}
+
+

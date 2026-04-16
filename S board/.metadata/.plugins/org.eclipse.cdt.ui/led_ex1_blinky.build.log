@@ -1,0 +1,26 @@
+
+**** Build of configuration CPU1_FLASH for project led_ex1_blinky ****
+
+"C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k -j 20 all -O 
+ 
+gmake[1]: 'led_ex1_blinky.out' is up to date.
+Building secondary target: "led_ex1_blinky.bin"
+Invoking: C2000 Hex Utility
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/hex2000" --memwidth=16 --order=LS --diag_wrap=off --binary -o "led_ex1_blinky.bin"  "led_ex1_blinky.out" 
+Translating to Binary format...
+   "led_ex1_blinky.out" codestart ==> codestart
+   "led_ex1_blinky.out" .const ==> .const
+   "led_ex1_blinky.out" .TI.ramfunc ==> .TI.ramfunc
+   "led_ex1_blinky.out" .text ==> .text
+   "led_ex1_blinky.out" .cinit ==> .cinit
+   "led_ex1_blinky.out" .ovly ==> .ovly
+Finished building secondary target: "led_ex1_blinky.bin"
+ 
+echo "========= Build of the CLB simulation has moved to the CLB Tool. Click the '?' icon by the _Generate CLB Simulation File_ enable for more details (located in the Global Parameters of the Tile Design SysConfig module) ============="
+"========= Build of the CLB simulation has moved to the CLB Tool. Click the '?' icon by the _Generate CLB Simulation File_ enable for more details (located in the Global Parameters of the Tile Design SysConfig module) ============="
+if 0 == 1  C:/ti/ccs1281/ccs/tools/node/node.exe "C:/ti/c2000/C2000Ware_6_00_01_00/utilities/clb_tool/clb_syscfg/dot_file_libraries/clbDotUtility.js"  "C:/ti/c2000/C2000Ware_6_00_01_00/utilities/clb_tool/clb_syscfg/" "D:/GEN3/S board/led_ex1_blinky/CPU1_FLASH/syscfg" "D:/GEN3/S board/led_ex1_blinky/CPU1_FLASH/syscfg/clb.dot"
+if 0 == 1  mkdir "D:/GEN3/S board/led_ex1_blinky/CPU1_FLASH/diagrams"
+if 0 == 1  C:/ti/ccs1281/ccs/tools/node/node.exe "C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/.meta/generate_diagrams.js" "C:/ti/c2000/C2000Ware_6_00_01_00" "D:/GEN3/S board/led_ex1_blinky/CPU1_FLASH/diagrams" "D:/GEN3/S board/led_ex1_blinky/CPU1_FLASH/syscfg"
+ 
+
+**** Build Finished ****

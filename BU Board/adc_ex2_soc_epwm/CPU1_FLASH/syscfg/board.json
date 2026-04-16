@@ -1,0 +1,16 @@
+{
+    "interruptInfo" : [
+        {
+            "interruptName": "INT_myADC0_1",
+            "interruptHandler": "adcA1ISR"
+        },
+        {
+            "interruptName": "INT_myCPUTIMER0",
+            "interruptHandler": "cpuTimer0ISR"
+        },
+        {
+            "interruptName": "INT_myGPIO28_XINT",
+            "interruptHandler": "GPIOISR"
+        }
+    ]
+}
