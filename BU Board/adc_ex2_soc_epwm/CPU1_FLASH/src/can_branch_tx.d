@@ -103,6 +103,7 @@ src/can_branch_tx.obj: ../src/power_calc_3phase.h
 src/can_branch_tx.obj: ../src/can_bu.h
 src/can_branch_tx.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 src/can_branch_tx.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
+src/can_branch_tx.obj: ../src/can_config.h
 src/can_branch_tx.obj: ../src/calibration.h
 src/can_branch_tx.obj: D:/GEN3/BU\ Board/adc_ex2_soc_epwm/metrology/metrology_structs.h
 src/can_branch_tx.obj: D:/GEN3/BU\ Board/adc_ex2_soc_epwm/metrology/metrology_nv_structs.h
@@ -334,6 +335,8 @@ C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h:
+
+../src/can_config.h:
 
 ../src/calibration.h:
 

@@ -6,7 +6,7 @@
 Building file: "../adc_ex2_soc_epwm.c"
 Invoking: C2000 Compiler
 "C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla2 --float_support=fpu32 --tmu_support=tmu1 --vcu_support=vcrc -Ooff --include_path="D:/GEN3/S board/adc_ex2_soc_epwm/metrology" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28p55x/include" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28p55x/include/FlashAPI" --include_path="D:/GEN3/S board/adc_ex2_soc_epwm" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00" --include_path="D:/GEN3/S board/adc_ex2_soc_epwm/device" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28p55x/include" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28p55x/include/FlashAPI" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/dsp/FPU/c28/examples/common" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/dsp/FPU/c28/examples/common/f28p55x" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/dsp/FPU/c28/include" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/control/DCL/c28/examples/F28P55x_DF22" --include_path="C:/ti/c2000/C2000Ware_5_04_00_00/libraries/control/DCL/c28/include" --define=DEBUG --define=_FLASH --diag_suppress=10063 --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --abi=eabi --preproc_with_compile --preproc_dependency="adc_ex2_soc_epwm.d_raw" --include_path="D:/GEN3/S board/adc_ex2_soc_epwm/CPU1_FLASH/syscfg" --cmd_file="syscfg/board.opt" --cmd_file="syscfg/c2000ware_libraries.opt"  "../adc_ex2_soc_epwm.c"
-"C:\ti\c2000\C2000Ware_5_04_00_00\libraries\flash_api\f28p55x\include\FlashAPI\Constants/F28P55x.h", line 25: warning #48-D: incompatible redefinition of macro "BANK4_END" (declared at line 47 of "..\common.h")
+"C:\ti\c2000\C2000Ware_5_04_00_00\libraries\flash_api\f28p55x\include\FlashAPI\Constants/F28P55x.h", line 25: warning #48-D: incompatible redefinition of macro "BANK4_END" (declared at line 48 of "..\common.h")
 "..\runtimedata.h", line 23: warning #163-D: unrecognized #pragma
 "..\runtimedata.h", line 206: warning #163-D: unrecognized #pragma
 "..\Firmware Upgrade/fw_image_rx.h", line 108: warning #1-D: last line of file ends without a newline
@@ -14,14 +14,14 @@ Invoking: C2000 Compiler
 "../adc_ex2_soc_epwm.c", line 52: warning #48-D: incompatible redefinition of macro "PHASE_R" (declared at line 18 of "..\runtime.h")
 "../adc_ex2_soc_epwm.c", line 53: warning #48-D: incompatible redefinition of macro "PHASE_Y" (declared at line 19 of "..\runtime.h")
 "../adc_ex2_soc_epwm.c", line 54: warning #48-D: incompatible redefinition of macro "PHASE_B" (declared at line 20 of "..\runtime.h")
-"../adc_ex2_soc_epwm.c", line 161: warning #48-D: incompatible redefinition of macro "VOLTAGE_BUFFER_SIZE" (declared at line 12 of "..\runtime.h")
-"../adc_ex2_soc_epwm.c", line 162: warning #48-D: incompatible redefinition of macro "FRAMES_PER_BUFFER" (declared at line 59)
-"../adc_ex2_soc_epwm.c", line 197: warning #48-D: incompatible redefinition of macro "DEBUG_PIN" (declared at line 30 of "..\i2c_sboard.h")
-"../adc_ex2_soc_epwm.c", line 317: warning #179-D: variable "timeout" was declared but never referenced
-"../adc_ex2_soc_epwm.c", line 489: warning #190-D: enumerated type mixed with another type
+"../adc_ex2_soc_epwm.c", line 168: warning #48-D: incompatible redefinition of macro "VOLTAGE_BUFFER_SIZE" (declared at line 12 of "..\runtime.h")
+"../adc_ex2_soc_epwm.c", line 169: warning #48-D: incompatible redefinition of macro "FRAMES_PER_BUFFER" (declared at line 59)
+"../adc_ex2_soc_epwm.c", line 204: warning #48-D: incompatible redefinition of macro "DEBUG_PIN" (declared at line 30 of "..\i2c_sboard.h")
+"../adc_ex2_soc_epwm.c", line 324: warning #179-D: variable "timeout" was declared but never referenced
+"../adc_ex2_soc_epwm.c", line 496: warning #190-D: enumerated type mixed with another type
 "..\metro.h", line 75: warning #824-D: pragma DATA_SECTION can only be applied to a file level symbol definition, not "voltage" (declared at line 76)
 "..\metro.h", line 78: warning #824-D: pragma DATA_SECTION can only be applied to a file level symbol definition, not "current" (declared at line 79)
-"../adc_ex2_soc_epwm.c", line 377 (col. 106): advice #2614-D: (Performance) Use --fp_mode=relaxed to enable TMU hardware support for FP division.
+"../adc_ex2_soc_epwm.c", line 384 (col. 106): advice #2614-D: (Performance) Use --fp_mode=relaxed to enable TMU hardware support for FP division.
 Finished building: "../adc_ex2_soc_epwm.c"
  
 Building target: "adc_ex2_soc_epwm.out"

@@ -135,6 +135,7 @@ metro.obj: ../can_driver.h
 metro.obj: ../common.h
 metro.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_types.h
 metro.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
+metro.obj: ../can_config.h
 
 ../metro.c:
 
@@ -405,4 +406,6 @@ D:/GEN3/S\ board/adc_ex2_soc_epwm/metrology/metrology_calibration_defaults.h:
 C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_types.h:
 
 C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h:
+
+../can_config.h:
 

@@ -102,6 +102,7 @@ adc_ex2_soc_epwm.obj: ../src/power_config.h
 adc_ex2_soc_epwm.obj: ../src/can_bu.h
 adc_ex2_soc_epwm.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 adc_ex2_soc_epwm.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
+adc_ex2_soc_epwm.obj: ../src/can_config.h
 adc_ex2_soc_epwm.obj: ../src/can_isr.h
 adc_ex2_soc_epwm.obj: ../src/calibration.h
 adc_ex2_soc_epwm.obj: ../src/voltage_rx.h
@@ -361,6 +362,8 @@ syscfg/board.h:
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h:
+
+../src/can_config.h:
 
 ../src/can_isr.h:
 

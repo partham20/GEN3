@@ -60,6 +60,34 @@ uint16_t myADC0Results[NUM_CHANNELS];
 uint16_t cpuTimer0IntCount,counter;
 extern int16_t ADCResults[NUM_CHANNELS];
 
+/* ── Heartbeat ────────────────────────────────────────────────── */
+#define HEARTBEAT_APP_CAN_ID    0x6FFU
+static volatile uint32_t g_heartbeatLoopCounter = 0;
+#define HEARTBEAT_LOOP_THRESHOLD 750000UL  /* ~5s at tight-loop speed */
+
+static void sendAppHeartbeat(void)
+{
+    MCAN_TxBufElement txMsg;
+    volatile uint32_t timeout;
+
+    memset(&txMsg, 0, sizeof(txMsg));
+    txMsg.id  = ((uint32_t)HEARTBEAT_APP_CAN_ID) << 18U;
+    txMsg.dlc = 8U;
+    txMsg.brs = 0x1U;
+    txMsg.fdf = 0x1U;
+    txMsg.efc = 1U;
+    txMsg.mm  = 0xAAU;
+    txMsg.data[0] = 'A';
+    txMsg.data[1] = 'P';
+    txMsg.data[2] = 'P';
+    txMsg.data[3] = 'L';
+
+    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 4U, &txMsg);
+    MCAN_txBufAddReq(CAN_BU_BASE, 4U);
+    for (timeout = 0U; timeout < 2000000U; timeout++)
+        if ((MCAN_getTxBufReqPend(CAN_BU_BASE) & (1UL << 4U)) == 0U) break;
+}
+
 volatile uint16_t done;
 volatile bool firstpulse = false;
 volatile uint16_t syncLossCounter = 0;
@@ -183,9 +211,9 @@ void main(void)
 {
     /* GPIO 20 heartbeat — visible on a scope / LED to confirm the
      * BU firmware is alive and the main loop is running. */
-    GPIO_setPinConfig(GPIO_20_GPIO20);
-    GPIO_setDirectionMode(20, GPIO_DIR_MODE_OUT);
-    GPIO_setPadConfig(20, GPIO_PIN_TYPE_STD);
+    GPIO_setPinConfig(GPIO_29_GPIO29);
+    GPIO_setDirectionMode(29, GPIO_DIR_MODE_OUT);
+    GPIO_setPadConfig(29, GPIO_PIN_TYPE_STD);
 
     /* 1. Core init */
     Device_init();
@@ -212,7 +240,7 @@ void main(void)
     /* 6. BU FW receiver — board id override if config has one set,
      *    otherwise fall through to whatever readCANAddress() got. */
     {
-        uint8_t myFwId = (uint8_t)address;
+        uint8_t myFwId = (uint8_t)(10U + address);  /* CAN ID = 10 + DIP switch */
 #if defined(FW_BU_BOARD_ID_OVERRIDE) && (FW_BU_BOARD_ID_OVERRIDE != 0)
         myFwId = (uint8_t)FW_BU_BOARD_ID_OVERRIDE;
 #endif
@@ -227,7 +255,14 @@ void main(void)
     while (1)
     {
         BU_Fw_process();
-        GPIO_togglePin(20);
+
+
+        g_heartbeatLoopCounter++;
+        if (g_heartbeatLoopCounter >= HEARTBEAT_LOOP_THRESHOLD)
+        {
+            g_heartbeatLoopCounter = 0;
+            sendAppHeartbeat(); GPIO_togglePin(29);
+        }
     }
 }
 
@@ -327,7 +362,7 @@ void main_FULL(void)
     // nonzero, use it instead of the DIP switch value.
     //
     {
-        uint8_t myFwId = (uint8_t)address;
+        uint8_t myFwId = (uint8_t)(10U + address);  /* CAN ID = 10 + DIP switch */
 #if defined(FW_BU_BOARD_ID_OVERRIDE) && (FW_BU_BOARD_ID_OVERRIDE != 0)
         myFwId = (uint8_t)FW_BU_BOARD_ID_OVERRIDE;
 #endif
@@ -1227,6 +1262,17 @@ __interrupt void adcA1ISR(void)
 __interrupt void cpuTimer0ISR(void)
 {
     cpuTimer0IntCount++;
+
+    /* 5-second heartbeat: cpuTimer0 fires at ~6.4 kHz (0.156ms period)
+     * 5s / 0.000156s = ~32000 ticks */
+    {
+        static uint32_t hbCount = 0;
+        if (++hbCount >= 32000U)
+        {
+            hbCount = 0;
+            sendAppHeartbeat();
+        }
+    }
 
     if (firstpulse)
     {

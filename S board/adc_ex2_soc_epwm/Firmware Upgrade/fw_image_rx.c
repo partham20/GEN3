@@ -231,9 +231,10 @@ static void FW_sendDebug(uint16_t canId, uint8_t b0, uint8_t b1,
     TxMsg.data[6] = (val2 >>  0) & 0xFF;
     TxMsg.data[7] = (val2 >>  8) & 0xFF;
 
-    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 2U, &TxMsg);
-    MCAN_txBufAddReq(CAN_BU_BASE, 2U);
-    canTxWaitComplete(CAN_BU_BASE);
+    /* S-Board self-update responses go to M-Board via MCANB */
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 2U, &TxMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 2U);
+    canTxWaitComplete(CAN_MBOARD_BASE);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -842,11 +843,11 @@ static void FW_sendResponse(uint8_t respCode, uint16_t seq)
     TxMsg.data[2] = seq & 0xFF;        /* seq low byte */
     TxMsg.data[3] = (seq >> 8) & 0xFF; /* seq high byte */
 
-    /* Use TX buffer 1 (buffer 0 may be busy with existing traffic) */
-    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 1U, &TxMsg);
-    MCAN_txBufAddReq(CAN_BU_BASE, 1U);
+    /* S-Board self-update responses go to M-Board via MCANB */
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 1U, &TxMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 1U);
 
-    canTxWaitComplete(CAN_BU_BASE);
+    canTxWaitComplete(CAN_MBOARD_BASE);
 }
 
 /* Send response with arbitrary data payload (up to 60 bytes after 4-byte header) */
@@ -871,7 +872,7 @@ static void FW_sendResponseWithData(uint8_t respCode, const uint8_t *data, uint1
     for (i = 0; i < len && i < 60; i++)
         TxMsg.data[4 + i] = data[i];
 
-    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 1U, &TxMsg);
-    MCAN_txBufAddReq(CAN_BU_BASE, 1U);
-    canTxWaitComplete(CAN_BU_BASE);
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 1U, &TxMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 1U);
+    canTxWaitComplete(CAN_MBOARD_BASE);
 }

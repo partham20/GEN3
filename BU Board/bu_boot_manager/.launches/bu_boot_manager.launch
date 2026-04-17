@@ -19,6 +19,7 @@
     <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.TMS320F28P550SJ9.ccxml.Texas Instruments XDS110 USB Debug Probe_0/C28xx_CPU1" value="bu_boot_manager"/>
     <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_PROJECT.TMS320F28P550SJ9_LaunchPad.ccxml.Texas Instruments XDS110 USB Debug Probe_0/C28xx_CPU1" value="bu_boot_manager"/>
     <stringAttribute key="com.ti.ccstudio.debug.debugModel.ATTR_TARGET_CONFIG" value="${target_config_active_default:bu_boot_manager}"/>
+    <stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.TMS320F28P550SJ9.ccxml.Texas Instruments XDS110 USB Debug Probe_0/C28xx_CPU1" value="${build_artifact:bu_boot_manager}"/>
     <stringAttribute key="com.ti.ccstudio.debug.debugModel.MRU_PROGRAM.TMS320F28P550SJ9_LaunchPad.ccxml.Texas Instruments XDS110 USB Debug Probe_0/C28xx_CPU1" value="${build_artifact:bu_boot_manager}"/>
     <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
         <listEntry value="/bu_boot_manager"/>

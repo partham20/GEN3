@@ -99,6 +99,7 @@ boot_manager.obj: C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/u
 boot_manager.obj: C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/version.h
 boot_manager.obj: D:/GEN3/S\ board/boot_manager/device/device.h
 boot_manager.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h
+boot_manager.obj: ../can_config.h
 boot_manager.obj: C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include/FlashAPI/FlashTech_F28P55x_C28x.h
 boot_manager.obj: C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include/FlashAPI/FlashTech.h
 boot_manager.obj: C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include/FlashAPI/Types.h
@@ -305,6 +306,8 @@ C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/version.h:
 D:/GEN3/S\ board/boot_manager/device/device.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
+
+../can_config.h:
 
 C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include/FlashAPI/FlashTech_F28P55x_C28x.h:
 

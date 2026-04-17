@@ -87,12 +87,16 @@
 #define BOOT_MCAN_TX_BUF_ADDR   0x0000U
 #define BOOT_MCAN_TX_BUF_NUM    1U
 
+/* ── Heartbeat ────────────────────────────────────────────────── */
+#define HEARTBEAT_BOOT_CAN_ID   0x7FFU
+
 /* ── Prototypes ───────────────────────────────────────────────── */
 static void      ledInit(void);
 static void      ledSet(uint16_t on);
 static void      configureMCANA(void);
 static void      canSendMsg(uint16_t canId, const uint8_t *payload, uint16_t len);
 static void      canSendHello(void);
+static void      sendBootHeartbeat(void);
 static void      canSendDebug(uint16_t canId, uint8_t b0, uint8_t b1,
                                uint32_t val1, uint32_t val2);
 static uint32_t  computeCRC32(uint32_t startAddr, uint32_t numBytes);
@@ -191,6 +195,7 @@ void main(void)
     ledInit();
     ledSet(1U);
     canSendHello();
+    sendBootHeartbeat();
     delayCycles(DEVICE_SYSCLK_FREQ / 7U);
     ledSet(0U);
 
@@ -419,6 +424,15 @@ static void canSendDebug(uint16_t canId, uint8_t b0, uint8_t b1,
     p[4] = (uint8_t)(val1 >> 16);  p[5] = (uint8_t)(val1 >> 24);
     p[6] = (uint8_t)(val2);        p[7] = (uint8_t)(val2 >> 8);
     canSendMsg(canId, p, 8U);
+}
+
+/* ══════════════════════════════════════════════════════════════
+ *  HEARTBEAT — 0x7FF on MCANA (S-Board bus) = "I am in boot mode"
+ * ══════════════════════════════════════════════════════════════ */
+static void sendBootHeartbeat(void)
+{
+    uint8_t p[8] = {'B','O','O','T',0,0,0,0};
+    canSendMsg(HEARTBEAT_BOOT_CAN_ID, p, 8U);
 }
 
 /* ══════════════════════════════════════════════════════════════

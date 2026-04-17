@@ -147,6 +147,13 @@ int c,d;
 #define CAN_FD_ENABLE           1                   // 1 = CAN FD, 0 = Classic CAN
 #define CAN_BRS_ENABLE          1                   // 1 = Bit rate switching enabled
 #define CAN_DLC_VALUE           15                  // DLC for 64-byte CAN FD frame
+
+// =============================================================================
+// HEARTBEAT CONFIGURATION
+// =============================================================================
+#define HEARTBEAT_APP_CAN_ID    0x6FFU              // "Application running" beacon
+#define HEARTBEAT_INTERVAL_SEC  5U                  // Send every 5 seconds
+static volatile uint32_t g_heartbeatCounter = 0;
 #define CAN_FRAME_SIZE          64                  // CAN FD frame data size in bytes
 #define CAN_ID_SHIFT            18U                 // Bit shift for standard CAN ID
 #define CAN_MSG_MARKER          0xAAU               // Message marker for TX event FIFO
@@ -833,10 +840,42 @@ void initDAC(void)
 
 
 
+static void sendAppHeartbeat(void)
+{
+    MCAN_TxBufElement txMsg;
+    volatile uint32_t timeout;
+
+    memset(&txMsg, 0, sizeof(txMsg));
+    txMsg.id  = ((uint32_t)HEARTBEAT_APP_CAN_ID) << 18U;
+    txMsg.dlc = 8U;
+    txMsg.brs = 0x1U;
+    txMsg.fdf = 0x1U;
+    txMsg.efc = 1U;
+    txMsg.mm  = 0xAAU;
+    txMsg.data[0] = 'A';
+    txMsg.data[1] = 'P';
+    txMsg.data[2] = 'P';
+    txMsg.data[3] = 'L';
+
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 0U, &txMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 0U);
+    for (timeout = 0U; timeout < 2000000U; timeout++)
+        if (MCAN_getTxBufReqPend(CAN_MBOARD_BASE) == 0U) break;
+}
+
 __interrupt void  INT_Cputimer_ISR()
 {
     c++;
     timerSystemTick();
+
+    /* Heartbeat for full app mode (CPU Timer 0 runs at 1 Hz) */
+    g_heartbeatCounter++;
+    if (g_heartbeatCounter >= HEARTBEAT_INTERVAL_SEC)
+    {
+        g_heartbeatCounter = 0;
+        sendAppHeartbeat();
+    }
+
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
 }
 
@@ -891,6 +930,18 @@ void startup(void)
         MCAN_enableIntr(CAN_BU_BASE, MCAN_INTR_MASK_ALL, 1U);
         MCAN_selectIntrLine(CAN_BU_BASE, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_1);
         MCAN_enableIntrLine(CAN_BU_BASE, MCAN_INTR_LINE_NUM_1, 1U);
+
+        //
+        // 4b. MCANB (M-Board bus) — heartbeat + M-Board commands
+        //
+        SysCtl_setMCANClk(CAN_MBOARD_SYSCTL, SYSCTL_MCANCLK_DIV_5);
+        GPIO_setPinConfig(CAN_MBOARD_TX_PIN);
+        GPIO_setPinConfig(CAN_MBOARD_RX_PIN);
+        MCANBConfig();
+
+        MCAN_enableIntr(CAN_MBOARD_BASE, MCAN_INTR_MASK_ALL, 1U);
+        MCAN_selectIntrLine(CAN_MBOARD_BASE, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_1);
+        MCAN_enableIntrLine(CAN_MBOARD_BASE, MCAN_INTR_LINE_NUM_1, 1U);
 
         //
         // 5. Enable Global Interrupts
@@ -1031,9 +1082,9 @@ void startup_FULL(void)
  */
 void main(void)
 {
-    GPIO_setPinConfig(GPIO_2_GPIO2);
-            GPIO_setDirectionMode(2, GPIO_DIR_MODE_OUT);
-            GPIO_setPadConfig(2, GPIO_PIN_TYPE_STD);
+    GPIO_setPinConfig(GPIO_29_GPIO29);
+            GPIO_setDirectionMode(29, GPIO_DIR_MODE_OUT);
+            GPIO_setPadConfig(29, GPIO_PIN_TYPE_STD);
             //GPIO_writePin(21, 0);
 
 
@@ -1086,7 +1137,17 @@ void main(void)
         }
 
         /* --- GPIO29 heartbeat toggle --- */
-       GPIO_togglePin(2);
+
+
+        /* --- 0x6FF application heartbeat on MCANB every ~5s --- */
+        {
+            static uint32_t hbLoopCount = 0;
+            if (++hbLoopCount >= 500000UL)
+            {
+                hbLoopCount = 0;
+                sendAppHeartbeat(); GPIO_togglePin(29);
+            }
+        }
     }
 }
 

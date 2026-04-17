@@ -415,10 +415,10 @@ static void FW_Bu_sendResponse(uint8_t respCode, uint16_t seq)
     TxMsg.data[2] = (uint8_t)(seq & 0xFFU);
     TxMsg.data[3] = (uint8_t)((seq >> 8) & 0xFFU);
 
-    /* TX buffer 3 — buffers 0..2 are already used by ops/self-update */
-    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 3U, &TxMsg);
-    MCAN_txBufAddReq(CAN_BU_BASE, 3U);
-    canTxWaitComplete(CAN_BU_BASE);
+    /* BU staging responses go to M-Board via MCANB */
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 3U, &TxMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 3U);
+    canTxWaitComplete(CAN_MBOARD_BASE);
 }
 
 static void FW_Bu_sendStateResponse(void)
@@ -450,7 +450,8 @@ static void FW_Bu_sendStateResponse(void)
     TxMsg.data[14] = (uint8_t)((fwBuImageInfo.imageCRC >> 16)& 0xFFU);
     TxMsg.data[15] = (uint8_t)((fwBuImageInfo.imageCRC >> 24)& 0xFFU);
 
-    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 3U, &TxMsg);
-    MCAN_txBufAddReq(CAN_BU_BASE, 3U);
-    canTxWaitComplete(CAN_BU_BASE);
+    /* BU staging state report goes to M-Board via MCANB */
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 3U, &TxMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 3U);
+    canTxWaitComplete(CAN_MBOARD_BASE);
 }

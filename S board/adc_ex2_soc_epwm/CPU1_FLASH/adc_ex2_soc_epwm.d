@@ -102,6 +102,7 @@ adc_ex2_soc_epwm.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverl
 adc_ex2_soc_epwm.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
 adc_ex2_soc_epwm.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 adc_ex2_soc_epwm.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
+adc_ex2_soc_epwm.obj: ../can_config.h
 adc_ex2_soc_epwm.obj: ../can_driver.h
 adc_ex2_soc_epwm.obj: ../flash_driver.h
 adc_ex2_soc_epwm.obj: C:/ti/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28p55x/include/FlashAPI/FlashTech_F28P55x_C28x.h
@@ -371,6 +372,8 @@ C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h:
+
+../can_config.h:
 
 ../can_driver.h:
 

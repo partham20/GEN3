@@ -103,6 +103,7 @@ BU\ Firmware\ Upgrade/fw_bu_master.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverl
 BU\ Firmware\ Upgrade/fw_bu_master.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
 BU\ Firmware\ Upgrade/fw_bu_master.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 BU\ Firmware\ Upgrade/fw_bu_master.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
+BU\ Firmware\ Upgrade/fw_bu_master.obj: D:/GEN3/S\ board/adc_ex2_soc_epwm/can_config.h
 BU\ Firmware\ Upgrade/fw_bu_master.obj: ../BU\ Firmware\ Upgrade/fw_upgrade_config.h
 BU\ Firmware\ Upgrade/fw_bu_master.obj: ../BU\ Firmware\ Upgrade/fw_bu_image_rx.h
 BU\ Firmware\ Upgrade/fw_bu_master.obj: D:/GEN3/S\ board/adc_ex2_soc_epwm/flash_driver.h
@@ -322,6 +323,8 @@ C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h:
+
+D:/GEN3/S\ board/adc_ex2_soc_epwm/can_config.h:
 
 ../BU\ Firmware\ Upgrade/fw_upgrade_config.h:
 

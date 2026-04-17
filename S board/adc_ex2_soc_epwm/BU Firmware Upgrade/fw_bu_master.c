@@ -179,11 +179,10 @@ void FW_BuMaster_sendStatusReply(void)
     TxMsg.data[13] = (uint8_t)(fwBuM_bulkBitmap       & 0xFFU);
     TxMsg.data[14] = (uint8_t)((fwBuM_bulkBitmap >> 8) & 0xFFU);
 
-    /* TX buffer 5 — buffers 0..4 used by ops, self-update, staging resp,
-     * master cmd. Pick a free slot. */
-    MCAN_writeMsgRam(CAN_BU_BASE, MCAN_MEM_TYPE_BUF, 5U, &TxMsg);
-    MCAN_txBufAddReq(CAN_BU_BASE, 5U);
-    canTxWaitComplete(CAN_BU_BASE);
+    /* OTA status reply goes to M-Board via MCANB */
+    MCAN_writeMsgRam(CAN_MBOARD_BASE, MCAN_MEM_TYPE_BUF, 5U, &TxMsg);
+    MCAN_txBufAddReq(CAN_MBOARD_BASE, 5U);
+    canTxWaitComplete(CAN_MBOARD_BASE);
 }
 
 void FW_BuMaster_isrOnResponse(const MCAN_RxBufElement *rxElem)

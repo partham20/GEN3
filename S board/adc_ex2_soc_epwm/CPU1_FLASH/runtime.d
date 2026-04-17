@@ -103,6 +103,7 @@ runtime.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/st
 runtime.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
 runtime.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 runtime.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
+runtime.obj: ../can_config.h
 runtime.obj: ../s_board_adc.h
 runtime.obj: syscfg/board.h
 runtime.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/math.h
@@ -345,6 +346,8 @@ C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h:
+
+../can_config.h:
 
 ../s_board_adc.h:
 

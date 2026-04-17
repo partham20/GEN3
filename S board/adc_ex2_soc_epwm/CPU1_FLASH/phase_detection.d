@@ -126,6 +126,7 @@ phase_detection.obj: D:/GEN3/S\ board/adc_ex2_soc_epwm/device/device.h
 phase_detection.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h
 phase_detection.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_types.h
 phase_detection.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h
+phase_detection.obj: ../can_config.h
 phase_detection.obj: ../pdu_manager.h
 phase_detection.obj: ../THD_Module/thd_adc_driver.h
 phase_detection.obj: ../THD_Module/thd_config.h
@@ -381,6 +382,8 @@ C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
 C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_types.h:
 
 C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/stw_dataTypes.h:
+
+../can_config.h:
 
 ../pdu_manager.h:
 

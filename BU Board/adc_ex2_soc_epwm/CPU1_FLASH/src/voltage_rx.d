@@ -100,6 +100,7 @@ src/voltage_rx.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib
 src/voltage_rx.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/version.h
 src/voltage_rx.obj: D:/GEN3/BU\ Board/adc_ex2_soc_epwm/device/device.h
 src/voltage_rx.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h
+src/voltage_rx.obj: ../src/can_config.h
 src/voltage_rx.obj: ../src/power_config.h
 src/voltage_rx.obj: ../src/voltage_rx.h
 src/voltage_rx.obj: ../src/power_calc.h
@@ -304,6 +305,8 @@ C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/version.h:
 D:/GEN3/BU\ Board/adc_ex2_soc_epwm/device/device.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
+
+../src/can_config.h:
 
 ../src/power_config.h:
 

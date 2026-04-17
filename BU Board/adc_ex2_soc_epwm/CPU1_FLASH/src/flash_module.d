@@ -100,6 +100,7 @@ src/flash_module.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverl
 src/flash_module.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/version.h
 src/flash_module.obj: D:/GEN3/BU\ Board/adc_ex2_soc_epwm/device/device.h
 src/flash_module.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h
+src/flash_module.obj: ../src/can_config.h
 src/flash_module.obj: ../src/power_config.h
 src/flash_module.obj: ../src/flash_module.h
 src/flash_module.obj: ../src/flash_config.h
@@ -313,6 +314,8 @@ C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/version.h:
 D:/GEN3/BU\ Board/adc_ex2_soc_epwm/device/device.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
+
+../src/can_config.h:
 
 ../src/power_config.h:
 

@@ -15,4 +15,5 @@ encoding//CPU1_FLASH/src/subdir_vars.mk=UTF-8
 encoding//CPU1_FLASH/subdir_rules.mk=UTF-8
 encoding//CPU1_FLASH/subdir_vars.mk=UTF-8
 encoding//metrology/metrology_background.c=UTF-8
+encoding//src/Firmware\ Upgrade/fw_upgrade_config.h=UTF-8
 encoding/adc_ex2_soc_epwm.c=UTF-8

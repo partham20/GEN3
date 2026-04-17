@@ -104,6 +104,7 @@ src/power_calc_3phase.obj: ../src/voltage_rx.h
 src/power_calc_3phase.obj: ../src/can_bu.h
 src/power_calc_3phase.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 src/power_calc_3phase.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
+src/power_calc_3phase.obj: ../src/can_config.h
 src/power_calc_3phase.obj: ../src/power_calc.h
 src/power_calc_3phase.obj: D:/GEN3/BU\ Board/adc_ex2_soc_epwm/metro.h
 src/power_calc_3phase.obj: syscfg/board.h
@@ -345,6 +346,8 @@ C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h:
 
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h:
+
+../src/can_config.h:
 
 ../src/power_calc.h:
 

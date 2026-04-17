@@ -99,6 +99,7 @@ src/Firmware\ Upgrade/fw_update_bu.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverl
 src/Firmware\ Upgrade/fw_update_bu.obj: D:/GEN3/BU\ Board/adc_ex2_soc_epwm/device/device.h
 src/Firmware\ Upgrade/fw_update_bu.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h
 src/Firmware\ Upgrade/fw_update_bu.obj: ../src/Firmware\ Upgrade/fw_upgrade_config.h
+src/Firmware\ Upgrade/fw_update_bu.obj: ../src/can_config.h
 src/Firmware\ Upgrade/fw_update_bu.obj: ../src/can_bu.h
 src/Firmware\ Upgrade/fw_update_bu.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/string.h
 src/Firmware\ Upgrade/fw_update_bu.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/xlocale/_string.h
@@ -309,6 +310,8 @@ D:/GEN3/BU\ Board/adc_ex2_soc_epwm/device/device.h:
 C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stddef.h:
 
 ../src/Firmware\ Upgrade/fw_upgrade_config.h:
+
+../src/can_config.h:
 
 ../src/can_bu.h:
 
