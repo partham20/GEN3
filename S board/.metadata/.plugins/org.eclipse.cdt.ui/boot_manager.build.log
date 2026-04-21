@@ -3,6 +3,27 @@
 
 "C:\\ti\\ccs1281\\ccs\\utils\\bin\\gmake" -k -j 20 all -O 
  
-gmake[1]: 'boot_manager.out' is up to date.
+Building file: "../device/device.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla2 --float_support=fpu32 --tmu_support=tmu1 --vcu_support=vcrc -Ooff --include_path="D:/GEN3/S board/boot_manager/device" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include/FlashAPI" --include_path="D:/GEN3/S board/boot_manager" --include_path="D:/GEN3/S board/adc_ex2_soc_epwm/CPU1_FLASH/device" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --define=DEBUG --define=_FLASH --diag_suppress=10063 --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --abi=eabi --preproc_with_compile --preproc_dependency="device/device.d_raw" --include_path="D:/GEN3/S board/boot_manager/CPU1_FLASH/syscfg" --obj_directory="device"  "../device/device.c"
+Finished building: "../device/device.c"
+ 
+Building file: "../boot_manager.c"
+Invoking: C2000 Compiler
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla2 --float_support=fpu32 --tmu_support=tmu1 --vcu_support=vcrc -Ooff --include_path="D:/GEN3/S board/boot_manager/device" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/include/FlashAPI" --include_path="D:/GEN3/S board/boot_manager" --include_path="D:/GEN3/S board/adc_ex2_soc_epwm/CPU1_FLASH/device" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00" --include_path="C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib" --include_path="C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --define=DEBUG --define=_FLASH --diag_suppress=10063 --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --abi=eabi --preproc_with_compile --preproc_dependency="boot_manager.d_raw" --include_path="D:/GEN3/S board/boot_manager/CPU1_FLASH/syscfg"  "../boot_manager.c"
+Finished building: "../boot_manager.c"
+ 
+Building target: "boot_manager.out"
+Invoking: C2000 Linker
+"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/bin/cl2000" -v28 -ml -mt --cla_support=cla2 --float_support=fpu32 --tmu_support=tmu1 --vcu_support=vcrc -Ooff --define=DEBUG --define=_FLASH --diag_suppress=10063 --diag_warning=225 --diag_wrap=off --display_error_number --gen_func_subsections=on --abi=eabi -z -m"boot_manager.map" --heap_size=0x100 --stack_size=0x200 --warn_sections -i"C:/ti/c2000/C2000Ware_6_00_01_00/libraries/flash_api/f28p55x/lib" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/lib" -i"C:/ti/c2000/C2000Ware_6_00_01_00" -i"D:/GEN3/S board/boot_manager/CPU1_FLASH/syscfg" -i"C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include" --reread_libs --define=_FLASH --diag_wrap=off --display_error_number --xml_link_info="boot_manager_linkInfo.xml" --entry_point=code_start --rom_model -o "boot_manager.out" "./boot_codestartbranch.obj" "./boot_manager.obj" "./device/device.obj" "../boot_manager_lnk.cmd" "C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/f28p55x/driverlib/ccs/Debug/driverlib.lib"  -llibc.a 
+<Linking>
+Finished building target: "boot_manager.out"
+ 
+echo "========= Build of the CLB simulation has moved to the CLB Tool. Click the '?' icon by the _Generate CLB Simulation File_ enable for more details (located in the Global Parameters of the Tile Design SysConfig module) ============="
+"========= Build of the CLB simulation has moved to the CLB Tool. Click the '?' icon by the _Generate CLB Simulation File_ enable for more details (located in the Global Parameters of the Tile Design SysConfig module) ============="
+if 0 == 1  C:/ti/ccs1281/ccs/tools/node/node.exe "C:/ti/c2000/C2000Ware_6_00_01_00/utilities/clb_tool/clb_syscfg/dot_file_libraries/clbDotUtility.js"  "C:/ti/c2000/C2000Ware_6_00_01_00/utilities/clb_tool/clb_syscfg/" "D:/GEN3/S board/boot_manager/CPU1_FLASH/syscfg" "D:/GEN3/S board/boot_manager/CPU1_FLASH/syscfg/clb.dot"
+if 0 == 1  mkdir "D:/GEN3/S board/boot_manager/CPU1_FLASH/diagrams"
+if 0 == 1  C:/ti/ccs1281/ccs/tools/node/node.exe "C:/ti/c2000/C2000Ware_6_00_01_00/driverlib/.meta/generate_diagrams.js" "C:/ti/c2000/C2000Ware_6_00_01_00" "D:/GEN3/S board/boot_manager/CPU1_FLASH/diagrams" "D:/GEN3/S board/boot_manager/CPU1_FLASH/syscfg"
+ 
 
 **** Build Finished ****

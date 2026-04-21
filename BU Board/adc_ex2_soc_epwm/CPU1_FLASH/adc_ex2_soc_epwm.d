@@ -123,6 +123,7 @@ adc_ex2_soc_epwm.obj: ../src/flash_programming_f28p55x.h
 adc_ex2_soc_epwm.obj: ../src/flash_module.h
 adc_ex2_soc_epwm.obj: ../src/Firmware\ Upgrade/fw_update_bu.h
 adc_ex2_soc_epwm.obj: ../src/Firmware\ Upgrade/fw_upgrade_config.h
+adc_ex2_soc_epwm.obj: ../src/fw_mode.h
 adc_ex2_soc_epwm.obj: ../metro.h
 adc_ex2_soc_epwm.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/math.h
 adc_ex2_soc_epwm.obj: C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/_defs.h
@@ -404,6 +405,8 @@ C:/ti/c2000/C2000Ware_5_04_00_00/libraries/flash_api/f28p55x/include/FlashAPI/Co
 ../src/Firmware\ Upgrade/fw_update_bu.h:
 
 ../src/Firmware\ Upgrade/fw_upgrade_config.h:
+
+../src/fw_mode.h:
 
 ../metro.h:
 

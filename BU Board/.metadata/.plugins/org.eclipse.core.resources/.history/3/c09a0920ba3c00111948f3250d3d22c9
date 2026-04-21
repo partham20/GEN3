@@ -1,0 +1,57 @@
+/*
+ * fw_mode.h — BU-Board FW Update Mode control
+ *
+ * Mirror of the S-Board's fw_mode.  On receipt of BU_CMD_ENTER_FW_MODE
+ * on MCANA (CAN ID 4) from the S-Board, the BU board suspends its
+ * normal ADC / CT / power / branch-TX work.  BU_CMD_EXIT_FW_MODE
+ * resumes it.
+ *
+ * A 1 Hz heartbeat (CAN ID 0x6FE) on MCANA keeps the S-Board informed.
+ * On every boot the BU broadcasts its RESP_FW_RESULT (0x41) once with
+ * its version + Bank 0 CRC32 so the S-Board can aggregate status.
+ */
+
+#ifndef SRC_FW_MODE_H_
+#define SRC_FW_MODE_H_
+
+#include <stdint.h>
+
+/* ── Shared protocol constants (mirror of S-Board common.h) ───── */
+#define BU_CMD_ENTER_FW_MODE            0x1E
+#define BU_CMD_EXIT_FW_MODE             0x1F
+#define BU_CMD_FW_STATUS_REQ            0x42
+#define RESP_FW_RESULT                  0x41
+
+#define HEARTBEAT_FW_MODE_CAN_ID        0x6FE
+
+#define FW_RESULT_BOOTED                0x01
+#define FW_RESULT_NORMAL                0x02
+#define FW_RESULT_FAILED                0x03
+
+#ifndef APP_VERSION
+#define APP_VERSION                     0x0011U
+#endif
+
+#define APP_IMAGE_START                 0x084000UL
+#define APP_IMAGE_MAX_SIZE              0x1C000UL
+
+typedef enum {
+    FW_MODE_NORMAL = 0,
+    FW_MODE_ACTIVE
+} FwModeState;
+
+/* ── Public API ──────────────────────────────────────────────── */
+void FwMode_init(void);
+void FwMode_tick(void);
+FwModeState FwMode_getState(void);
+static inline uint8_t FwMode_isActive(void) {
+    return (uint8_t)(FwMode_getState() == FW_MODE_ACTIVE);
+}
+
+/* ISR-safe: returns 1 if data[0] is a fw-mode command we handled. */
+uint8_t FwMode_isrOnBroadcast(const uint8_t *data);
+
+/* Call once from startup after CAN is up. Broadcasts boot status. */
+void FwMode_sendBootStatus(void);
+
+#endif /* SRC_FW_MODE_H_ */

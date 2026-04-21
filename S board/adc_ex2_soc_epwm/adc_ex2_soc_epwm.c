@@ -22,6 +22,7 @@
 #include "Firmware Upgrade/fw_image_rx.h"
 #include "BU Firmware Upgrade/fw_bu_image_rx.h"
 #include "BU Firmware Upgrade/fw_bu_master.h"
+#include "src/fw_mode.h"
 // I2C
 #include "i2c_scanner.h"
 //THD
@@ -891,64 +892,224 @@ extern uint16_t FPUmathTablesRunStart;
 
 void startup(void)
 {
-        //
-        // 1. Core Device Initialization
-        //
-        Device_init();
-        Device_initGPIO();
+    /* ── 1. Core device / GPIO / FPU tables ──────────────────── */
+    Device_init();
+    Device_initGPIO();
 
-        //
-        // 2. Flash API Initialization
-        //
-        FlashAPI_init();
+    memcpy(&FPUmathTablesRunStart, &FPUmathTablesLoadStart,
+           (size_t)&FPUmathTablesLoadSize);
 
-        //
-        // 3. Interrupt Infrastructure
-        //
-        Interrupt_initModule();
-        Interrupt_initVectorTable();
+    /* ── 2. Flash API + Interrupt infrastructure ─────────────── */
+    FlashAPI_init();
+    Interrupt_initModule();
+    Interrupt_initVectorTable();
+    C2000Ware_libraries_init();
 
-        //
-        // 4. MCAN (CAN FD) Configuration — BU bus for FW update
-        //
-        SysCtl_setMCANClk(CAN_BU_SYSCTL, SYSCTL_MCANCLK_DIV_5);
+    /* ── 3. Application library init (THD / metrology / phase) ─ */
+    THD_init(&g_analyzer,
+             RFFTin1Buff,
+             RFFToutBuff,
+             RFFTmagBuff,
+             RFFTphBuff,
+             RFFTTwiddleCoef,
+             WindowCoef,
+             (float32_t*)AdcRawBuffers,
+             THD_NUM_CHANNELS,
+             THD_FFT_SIZE,
+             THD_FFT_STAGES);
+    THD_ADC_init();
+    metrology_main();
+    PhaseDetection_init();
 
-        MCANIntrConfig();
+    /* ── 4. DMA ISRs ─────────────────────────────────────────── */
+    Interrupt_register(DMA_INT_R, &dmaCh1ISR);
+    Interrupt_register(DMA_INT_Y, &dmaCh2ISR);
+    Interrupt_register(DMA_INT_B, &dmaCh3ISR);
+    Interrupt_enable(DMA_INT_R);
+    Interrupt_enable(DMA_INT_Y);
+    Interrupt_enable(DMA_INT_B);
 
-        // BU bus GPIO
-        GPIO_setPinConfig(CAN_BU_TX_PIN);
-        GPIO_setPinConfig(CAN_BU_RX_PIN);
+    /* ── 5. ePWM7 + ADC + DMA ────────────────────────────────── */
+    SysCtl_disablePeripheral(SYSCTL_PERIPH_CLK_TBCLKSYNC);
+    EPWM_init();
+    initEPWM();
+    initADC_DMA();
+    SysCtl_enablePeripheral(SYSCTL_PERIPH_CLK_TBCLKSYNC);
 
-        MCANAConfig();
-        FW_ImageRx_init();
-        FW_BuImageRx_init();
-        FW_BuMaster_init();
+    /* Zero the three phase-voltage buffers before first capture */
+    {
+        uint16_t i;
+        for (i = 0; i < RESULTS_BUFFER_SIZE; i++)
+        {
+            adcBufferR[i] = 0;
+            adcBufferY[i] = 0;
+            adcBufferB[i] = 0;
+        }
+    }
 
-        /* 1 kHz millisecond tick — used by fw_bu_master phase timeouts */
-        initMsTick();
+    /* ── 6. Runtime timing + PDU / calibration bootstrap ─────── */
+    initRuntimeTiming();
+    startRuntimeTiming();
 
-        MCAN_enableIntr(CAN_BU_BASE, MCAN_INTR_MASK_ALL, 1U);
-        MCAN_selectIntrLine(CAN_BU_BASE, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_1);
-        MCAN_enableIntrLine(CAN_BU_BASE, MCAN_INTR_LINE_NUM_1, 1U);
+    findReadAndWriteAddress();
+    initializePDUManager();
 
-        //
-        // 4b. MCANB (M-Board bus) — heartbeat + M-Board commands
-        //
-        SysCtl_setMCANClk(CAN_MBOARD_SYSCTL, SYSCTL_MCANCLK_DIV_5);
-        GPIO_setPinConfig(CAN_MBOARD_TX_PIN);
-        GPIO_setPinConfig(CAN_MBOARD_RX_PIN);
-        MCANBConfig();
+    if (newestData == 0)
+    {
+        writeAddress = BANK4_START;
+        writeDefaultCalibrationValues();
+        Example_ProgramUsingAutoECC();
+        if (!updateFailed) { syncReadWriteToWorking(); }
+        readAddress = BANK4_START;
+    }
+    else
+    {
+        memcpy(&pduManager.readWriteData,
+               (void*)readAddress,
+               sizeof(CalibrationData));
+        validateCalibrationGains();
+        syncReadWriteToWorking();
+    }
 
-        MCAN_enableIntr(CAN_MBOARD_BASE, MCAN_INTR_MASK_ALL, 1U);
-        MCAN_selectIntrLine(CAN_MBOARD_BASE, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_1);
-        MCAN_enableIntrLine(CAN_MBOARD_BASE, MCAN_INTR_LINE_NUM_1, 1U);
+    /* ── 7. CAN — BU bus (MCANA) + M-Board bus (MCANB) ──────── */
+    SysCtl_setMCANClk(CAN_BU_SYSCTL,    SYSCTL_MCANCLK_DIV_5);
+    SysCtl_setMCANClk(CAN_MBOARD_SYSCTL, SYSCTL_MCANCLK_DIV_5);
+    MCANIntrConfig();
 
-        //
-        // 5. Enable Global Interrupts
-        //
-        EINT;
-        ERTM;
-        DEVICE_DELAY_US(STARTUP_DELAY_US);
+    GPIO_setPinConfig(CAN_BU_TX_PIN);
+    GPIO_setPinConfig(CAN_BU_RX_PIN);
+    GPIO_setPinConfig(CAN_MBOARD_TX_PIN);
+    GPIO_setPinConfig(CAN_MBOARD_RX_PIN);
+
+    MCANAConfig();
+    MCANBConfig();
+
+    /* OTA receiver / master state machines live alongside the app */
+    FW_ImageRx_init();
+    FW_BuImageRx_init();
+    FW_BuMaster_init();
+
+    /* 1 kHz millisecond tick — drives fw_bu_master phase timeouts */
+    initMsTick();
+
+    /* ── 8. CPU timer 0 (1 Hz heartbeat + calibration pacing) ─ */
+    timer_system_init();
+    CPUTimer_stopTimer(CPUTIMER0_BASE);
+    CPUTimer_selectClockSource(CPUTIMER0_BASE,
+                                CPUTIMER_CLOCK_SOURCE_SYS,
+                                CPUTIMER_CLOCK_PRESCALER_1);
+    CPUTimer_setEmulationMode(CPUTIMER0_BASE,
+                               CPUTIMER_EMULATIONMODE_STOPAFTERNEXTDECREMENT);
+    CPUTimer_setPeriod(CPUTIMER0_BASE, 150000000UL);   /* 1 Hz @ 150 MHz */
+    CPUTimer_setPreScaler(CPUTIMER0_BASE, 0);
+    CPUTimer_clearOverflowFlag(CPUTIMER0_BASE);
+    CPUTimer_reloadTimerCounter(CPUTIMER0_BASE);
+    CPUTimer_enableInterrupt(CPUTIMER0_BASE);
+    Interrupt_register(INT_TIMER0, &INT_Cputimer_ISR);
+    Interrupt_enable(INT_TIMER0);
+
+    /* Enable MCAN interrupt lines now that handlers are in place */
+    MCAN_enableIntr(CAN_BU_BASE,     MCAN_INTR_MASK_ALL, 1U);
+    MCAN_enableIntr(CAN_MBOARD_BASE, MCAN_INTR_MASK_ALL, 1U);
+    MCAN_selectIntrLine(CAN_BU_BASE,     MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_1);
+    MCAN_selectIntrLine(CAN_MBOARD_BASE, MCAN_INTR_MASK_ALL, MCAN_INTR_LINE_NUM_1);
+    MCAN_enableIntrLine(CAN_BU_BASE,     MCAN_INTR_LINE_NUM_1, 1U);
+    MCAN_enableIntrLine(CAN_MBOARD_BASE, MCAN_INTR_LINE_NUM_1, 1U);
+
+    /* ── 9. BU tracking + runtime data paths ─────────────────── */
+    initBUTracking();
+    memset(buMessagePending, 0, sizeof(buMessagePending));
+    buMessageReceived = false;
+    initRuntimeVoltageTransmission();
+    initRuntimeDataCollection();
+    initSBoardRuntimeToMBoard();
+
+    /* ── 10. I2C scanner (TCA9555 expanders) ─────────────────── */
+    (void)I2C_Scanner_checkBusIdle();
+    I2C_Scanner_init();
+
+    /* ── 11. Global interrupts ON — now everything can fire ─── */
+    EINT;
+    ERTM;
+    DEVICE_DELAY_US(STARTUP_DELAY_US);
+    CPUTimer_startTimer(CPUTIMER0_BASE);
+
+    /* ── 12. FW update mode state machine + boot-push ────────── */
+    FwMode_init();
+    FwMode_sendBootStatus();
+}
+
+/* ══════════════════════════════════════════════════════════════
+ *  Suspend / resume hooks called by FwMode on ENTER / EXIT.
+ *
+ *  Stops every real-time peripheral the application relies on so
+ *  the board can sit quietly during an OTA session.  Register
+ *  writes against uninitialised peripherals are harmless — today's
+ *  simplified main() never starts them, so these calls are NOPs
+ *  until startup_FULL() / main_FULL() are brought back online.
+ *
+ *  On resume we DO NOT magically restart the full capture/playback
+ *  state machine — that lives in main_FULL's main loop and will
+ *  come back naturally once the gate opens.  We only re-arm the
+ *  peripherals so they don't trigger partial / stale interrupts.
+ * ══════════════════════════════════════════════════════════════ */
+void sBoardSuspendNormalMode(void)
+{
+    /* 1. Freeze the ADC trigger source so no new SOCs happen. */
+    EPWM_disableADCTrigger(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+    EPWM_setTimeBaseCounterMode(EPWM_TRIGGER_BASE,
+                                 EPWM_COUNTER_MODE_STOP_FREEZE);
+
+    /* 2. Stop the three DMA channels (R / Y / B). */
+    DMA_stopChannel(DMA_CH_R_BASE);
+    DMA_stopChannel(DMA_CH_Y_BASE);
+    DMA_stopChannel(DMA_CH_B_BASE);
+
+    /* 3. Disable ADC-side interrupts so any pending flags don't fire. */
+    ADC_disableInterrupt(ADC_MODULE_BASE, ADC_INT_R);
+    ADC_disableInterrupt(ADC_MODULE_BASE, ADC_INT_Y);
+    ADC_disableInterrupt(ADC_MODULE_BASE, ADC_INT_B);
+    ADC_disableInterrupt(ADC_MODULE_BASE, ADC_INT_PLAYBACK);
+
+    /* 4. Disable the PIE-level entries for the relevant ISRs. */
+    Interrupt_disable(INT_ADCA1);
+    Interrupt_disable(INT_DMA_CH1);
+    Interrupt_disable(INT_DMA_CH2);
+    Interrupt_disable(INT_DMA_CH3);
+
+    /* 5. Stop any CPU timer the runtime is using. */
+    CPUTimer_stopTimer(CPUTIMER0_BASE);
+    CPUTimer_stopTimer(CPUTIMER1_BASE);
+    CPUTimer_stopTimer(CPUTIMER2_BASE);
+}
+
+void sBoardResumeNormalMode(void)
+{
+    /* 1. Clear any stale interrupt / trigger flags before re-arming. */
+    ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_R);
+    ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_Y);
+    ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_B);
+    ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_PLAYBACK);
+    EPWM_clearADCTriggerFlag(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+
+    /* 2. Re-enable ADC interrupt sources. */
+    ADC_enableInterrupt(ADC_MODULE_BASE, ADC_INT_R);
+    ADC_enableInterrupt(ADC_MODULE_BASE, ADC_INT_Y);
+    ADC_enableInterrupt(ADC_MODULE_BASE, ADC_INT_B);
+
+    /* 3. Re-enable the PIE entries. */
+    Interrupt_enable(INT_ADCA1);
+    Interrupt_enable(INT_DMA_CH1);
+    Interrupt_enable(INT_DMA_CH2);
+    Interrupt_enable(INT_DMA_CH3);
+
+    /* 4. Restart CPU timers. */
+    CPUTimer_startTimer(CPUTIMER0_BASE);
+    CPUTimer_startTimer(CPUTIMER1_BASE);
+    CPUTimer_startTimer(CPUTIMER2_BASE);
+
+    /* 5. The main loop's capture/playback block will re-start the
+     *    DMA + ePWM trigger on the next cycle — nothing to do here. */
 }
 
 /* === ORIGINAL startup() — disabled for FW update testing ===
@@ -1082,42 +1243,142 @@ void startup_FULL(void)
  */
 void main(void)
 {
+    /* Status LED on GPIO 29 */
     GPIO_setPinConfig(GPIO_29_GPIO29);
-            GPIO_setDirectionMode(29, GPIO_DIR_MODE_OUT);
-            GPIO_setPadConfig(29, GPIO_PIN_TYPE_STD);
-            //GPIO_writePin(21, 0);
+    GPIO_setDirectionMode(29, GPIO_DIR_MODE_OUT);
+    GPIO_setPadConfig(29, GPIO_PIN_TYPE_STD);
 
-
-    // Initialize the system (stripped down — CAN + Flash only)
+    /* Full-app init: device, ePWMs, DMA, ADC, CAN (A+B), CPU timer,
+     * BU tracking, I2C, and the OTA receiver/master — all together. */
     startup();
+
+    /* Initial I2C device scan (same as the original main). */
+    uint16_t numDevices = 0;
+    const I2C_ScanResult *results = NULL;
+    (void)numDevices;
+    (void)results;
+    numDevices = I2C_Scanner_scanBus(TCA9555_ADDR_START,
+                                      TCA9555_ADDR_END,
+                                      TCA9555_REG_OUTPUT0);
+    results = I2C_Scanner_getResults();
 
     while (1)
     {
-        /* --- S-Board self-update: drain ring → Bank 2 --- */
-        FW_ImageRx_process();
+        /* ────────────────────────────────────────────────────
+         * OTA pipeline — runs regardless of mode so the boards
+         * can always receive a firmware update.
+         * ──────────────────────────────────────────────────── */
+        FW_ImageRx_process();     /* S-Board self-update → Bank 2 */
+        FW_BuImageRx_process();   /* BU OTA staging     → Bank 1 */
+        FW_BuMaster_process();    /* Drives Bank 1 → BU stream  */
 
-        /* --- BU FW staging: drain ring → Bank 1 --- */
-        FW_BuImageRx_process();
+        /* FW mode tick: drains pending ENTER/EXIT/STATUS_REQ cmds
+         * and emits the 1 Hz FW-mode heartbeat when active. */
+        FwMode_tick();
 
-        /* --- BU FW master: drive the state machine that streams
-         *     Bank 1 to a BU board over MCANA ------------------ */
-        FW_BuMaster_process();
+        /* ────────────────────────────────────────────────────
+         * In FW update mode everything below is paused — the
+         * suspend hooks already stopped ePWM/DMA/ADC/timers, so
+         * we just skip the normal application work.
+         * ──────────────────────────────────────────────────── */
+        if (FwMode_isActive()) continue;
 
-        /* --- M-Board command dispatch (CAN ID 3) --------------
-         *  Minimal handler for the BU firmware upgrade pipeline.
-         *  The M-Board sets CMD_START_BU_FW_UPGRADE (0x0E) with
-         *  target BU id in byte 1; S-Board kicks off fw_bu_master
-         *  and replies asynchronously. The M-Board polls progress
-         *  via CMD_BU_FW_STATUS_REQUEST (0x0F) on the same ID. */
+        /* ────────────────────────────────────────────────────
+         * Normal application work below.
+         * ──────────────────────────────────────────────────── */
+
+        /* BU message housekeeping */
+        if (buMessageReceived)
+        { processBUMessages(); buMessageReceived = false; }
+
+        if (bufferFull)
+        { copyRxFIFO(); processReceivedCalibrationData(); }
+
+        if (requestRetransmission)
+        {
+            handleMissingFrames();
+            requestRetransmission = false;
+            stopSoftwareTimer(TIMER_FRAME_TRACKING);
+        }
+
+        /* Runtime BU data collection / sync */
+        if (!calibrationInProgress && runtimeActive)
+        {
+            if (runtimeMessageReceived)
+            { processBURuntimeMessages(); runtimeMessageReceived = false; }
+
+            if (activeBUMask != 0)
+            {
+                if (!buDataCollectionComplete &&
+                    receivedCurrentFrames == activeBUMask &&
+                    receivedKWFrames == activeBUMask)
+                {
+                    buDataCollectionComplete = true;
+                    if (!buDataProcessed)
+                    {
+                        sendToMBoard  = true;
+                        sendToBUBoard = false;
+                        syncBUBoardsData();
+                    }
+                }
+            }
+        }
+
+        /* Discovery finalization on 10 s timer */
+        if (discoveryInProgress && timer10SecExpired)
+        {
+            finalizeBUDiscovery();
+            if (activeBUMask != 0)
+            {
+                copyFlashToBUBoards();
+                receivedCurrentFrames   = 0;
+                receivedKWFrames        = 0;
+                buDataCollectionComplete = false;
+                buDataProcessed          = false;
+                sendToMBoard             = false;
+            }
+            else
+            {
+                buDataCollectionComplete = true;
+                buDataProcessed          = true;
+                sendToMBoard             = true;
+            }
+            discoveryComplete = true;
+        }
+
+        if (discoveryComplete && !buDataCollectionComplete && activeBUMask != 0)
+        {
+            if (receivedCurrentFrames == activeBUMask &&
+                receivedKWFrames       == activeBUMask)
+            {
+                buDataCollectionComplete = true;
+                syncBUBoardsData();
+                buDataProcessed = true;
+                sendToMBoard    = true;
+            }
+        }
+
+        if (discoveryComplete && buDataCollectionComplete &&
+            buDataProcessed && sendToMBoard)
+        {
+            sendCalibrationDataToMBoard();
+        }
+
+        /* ────────────────────────────────────────────────────
+         * M-Board command dispatch (CAN ID 3).
+         * Combines OTA pipeline commands (CMD_START_BU_FW_UPGRADE,
+         * CMD_BU_FW_STATUS_REQUEST) with the calibration / runtime
+         * command set.
+         * ──────────────────────────────────────────────────── */
         if (CommandReceived)
         {
             uint8_t cmd = rxMsg[3].data[0];
             switch (cmd)
             {
+                /* --- OTA pipeline ------------------------------- */
                 case CMD_START_BU_FW_UPGRADE:
                 {
                     uint8_t target = rxMsg[3].data[1];
-                    /* Reject if Bank 1 doesn't have a verified image. */
                     if (FW_BuImageRx_getState() == FW_BU_RX_READY)
                     {
                         (void)FW_BuMaster_start(target);
@@ -1125,29 +1386,153 @@ void main(void)
                     FW_BuMaster_sendStatusReply();
                     break;
                 }
-
                 case CMD_BU_FW_STATUS_REQUEST:
                     FW_BuMaster_sendStatusReply();
                     break;
 
+                /* --- Calibration / runtime commands ------------ */
+                case CMD_START_DISCOVERY:
+                    calibrationInProgress = true;
+                    runtimeActive         = false;
+                    resetCANModule();
+                    ClearRxFIFOBuffer();
+                    resetFrameTracking();
+                    sendDiscoveryStartAck();
+                    startNewDiscovery();
+                    break;
+                case CMD_READ:
+                    findReadAndWriteAddress();
+                    if (newestData > 0)
+                    {
+                        memcpy(&pduManager.readWriteData,
+                               (void*)readAddress,
+                               sizeof(CalibrationData));
+                    }
+                    prepareCalibrationFramesForTx(&pduManager.readWriteData.pduData);
+                    handleRetransmissionRequest(&rxMsg[3]);
+                    break;
+                case CMD_VERSION_CHECK:
+                    sendCalibrationDataFormatVersion();
+                    break;
+                case CMD_FLASH_ENABLE:
+                    calibrationInProgress = true;
+                    runtimeActive         = false;
+                    enableFlashWrite();
+                    break;
+                case CMD_ERASE_BANK4:
+                    calibrationInProgress = true;
+                    runtimeActive         = false;
+                    relayCommandToBUBoards(&rxMsg[3]);
+                    eraseBank4();
+                    erasedBank4Ack();
+                    break;
+                case CMD_WRITE_DEFAULT:
+                    relayCommandToBUBoards(&rxMsg[3]);
+                    findReadAndWriteAddress();
+                    eraseSectorOrFindEmptySector();
+                    writeDefaultCalibrationValues();
+                    Example_ProgramUsingAutoECC();
+                    writtenDefaultCalibrationValuesAck();
+                    break;
+                case CMD_STOP_CALIBRATION:
+                    if (!updateFailed)
+                    {
+                        syncReadWriteToWorking();
+                        if (activeBUMask != 0) { copyFlashToBUBoards(); }
+                    }
+                    sendStopCalibrationToBUBoards();
+                    sendStopCalibrationAck();
+                    DEVICE_DELAY_US(10000);
+                    SysCtl_resetDevice();
+                    break;
+                case 0xFD:
+                    processSBoardRuntimeToMBoard();
+                    break;
                 default:
                     break;
             }
             CommandReceived = false;
         }
 
-        /* --- GPIO29 heartbeat toggle --- */
-
-
-        /* --- 0x6FF application heartbeat on MCANB every ~5s --- */
+        /* ────────────────────────────────────────────────────
+         * Capture + playback cycle + voltage broadcast + THD.
+         * Only when not calibrating and runtime is active.
+         * ──────────────────────────────────────────────────── */
+        if (!calibrationInProgress && runtimeActive)
         {
-            static uint32_t hbLoopCount = 0;
-            if (++hbLoopCount >= 500000UL)
+            App_calculateMetrologyParameters(&gAppHandle, &gMetrologyWorkingData);
+            PhaseDetection_runAll();
+
+            /* ── Capture phase ── */
+            done = 0; dmaCompleteR = 0; dmaCompleteY = 0; dmaCompleteB = 0;
+            isPlaybackMode = 0;
+            DMA_clearTriggerFlag(DMA_CH_R_BASE);
+            DMA_clearTriggerFlag(DMA_CH_Y_BASE);
+            DMA_clearTriggerFlag(DMA_CH_B_BASE);
+            ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_PLAYBACK);
+            ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_R);
+            ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_Y);
+            ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_B);
+            ADC_clearInterruptOverflowStatus(ADC_MODULE_BASE, ADC_INT_PLAYBACK);
+            ADC_clearInterruptOverflowStatus(ADC_MODULE_BASE, ADC_INT_R);
+            ADC_clearInterruptOverflowStatus(ADC_MODULE_BASE, ADC_INT_Y);
+            ADC_clearInterruptOverflowStatus(ADC_MODULE_BASE, ADC_INT_B);
+            EPWM_clearADCTriggerFlag(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_forceADCTriggerEventCountInit(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            DMA_configAddresses(DMA_CH_R_BASE, (uint16_t *)adcBufferR, (uint16_t *)ADC_RESULT_R);
+            DMA_configAddresses(DMA_CH_Y_BASE, (uint16_t *)adcBufferY, (uint16_t *)ADC_RESULT_Y);
+            DMA_configAddresses(DMA_CH_B_BASE, (uint16_t *)adcBufferB, (uint16_t *)ADC_RESULT_B);
+            DMA_startChannel(DMA_CH_R_BASE);
+            DMA_startChannel(DMA_CH_Y_BASE);
+            DMA_startChannel(DMA_CH_B_BASE);
+            EPWM_setTimeBaseCounter(EPWM_TRIGGER_BASE, 0);
+            EPWM_enableADCTrigger(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_setTimeBaseCounterMode(EPWM_TRIGGER_BASE, EPWM_COUNTER_MODE_UP);
+            EPWM_disableADCTrigger(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_setTimeBaseCounterMode(EPWM_TRIGGER_BASE, EPWM_COUNTER_MODE_STOP_FREEZE);
+
+            /* ── Playback phase ── */
+            done = 0; playbackIndex = 0; isPlaybackMode = 1;
+            ADC_clearInterruptStatus(ADC_MODULE_BASE, ADC_INT_PLAYBACK);
+            ADC_clearInterruptOverflowStatus(ADC_MODULE_BASE, ADC_INT_PLAYBACK);
+            EPWM_clearADCTriggerFlag(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_forceADCTriggerEventCountInit(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_setTimeBaseCounter(EPWM_TRIGGER_BASE, 0);
+            EPWM_enableADCTrigger(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_setTimeBaseCounterMode(EPWM_TRIGGER_BASE, EPWM_COUNTER_MODE_UP);
+            while (done == 0) { }
+            EPWM_disableADCTrigger(EPWM_TRIGGER_BASE, EPWM_SOC_TRIGGER);
+            EPWM_setTimeBaseCounterMode(EPWM_TRIGGER_BASE, EPWM_COUNTER_MODE_STOP_FREEZE);
+
+            /* ── Post-processing ── */
+            PhaseDetection_computeCrestFactors();
+            sendAllPhaseVoltages();
+            resetRuntimeFrameTracking();
+
+            if (THD_ADC_isBufferReady())
             {
-                hbLoopCount = 0;
-                sendAppHeartbeat(); GPIO_togglePin(29);
+                int ch;
+                for (ch = 0; ch < THD_NUM_CHANNELS; ch++)
+                {
+                    THD_loadChannelData(&g_analyzer, ch,
+                                         THD_ADC_getChannelBuffer(ch),
+                                         THD_FFT_SIZE);
+                }
+                THD_processAllChannels(&g_analyzer);
+                THD_ADC_resetAndRearm();
             }
+
+            populateInputParameters();
+            populateOutputParameters();
+            processSBoardRuntimeToMBoard();
+
+            numDevices = I2C_Scanner_scanBus(TCA9555_ADDR_START,
+                                              TCA9555_ADDR_END,
+                                              TCA9555_REG_OUTPUT0);
+            results   = I2C_Scanner_getResults();
         }
+
+        GPIO_togglePin(29);
     }
 }
 

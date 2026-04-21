@@ -121,6 +121,7 @@ isr.obj: D:/GEN3/S\ board/adc_ex2_soc_epwm/flash_programming_f28p55x.h
 isr.obj: ../BU\ Firmware\ Upgrade/fw_bu_image_rx.h
 isr.obj: ../BU\ Firmware\ Upgrade/fw_upgrade_config.h
 isr.obj: ../BU\ Firmware\ Upgrade/fw_bu_master.h
+isr.obj: ../src/fw_mode.h
 
 ../isr.c:
 
@@ -363,4 +364,6 @@ D:/GEN3/S\ board/adc_ex2_soc_epwm/flash_programming_f28p55x.h:
 ../BU\ Firmware\ Upgrade/fw_upgrade_config.h:
 
 ../BU\ Firmware\ Upgrade/fw_bu_master.h:
+
+../src/fw_mode.h:
 

@@ -12,6 +12,7 @@ C_SRCS += \
 ../src/can_isr.c \
 ../src/ct_dma.c \
 ../src/flash_module.c \
+../src/fw_mode.c \
 ../src/pdu_manager.c \
 ../src/power_calc.c \
 ../src/power_calc_3phase.c \
@@ -24,6 +25,7 @@ C_DEPS += \
 ./src/can_isr.d \
 ./src/ct_dma.d \
 ./src/flash_module.d \
+./src/fw_mode.d \
 ./src/pdu_manager.d \
 ./src/power_calc.d \
 ./src/power_calc_3phase.d \
@@ -36,6 +38,7 @@ OBJS += \
 ./src/can_isr.obj \
 ./src/ct_dma.obj \
 ./src/flash_module.obj \
+./src/fw_mode.obj \
 ./src/pdu_manager.obj \
 ./src/power_calc.obj \
 ./src/power_calc_3phase.obj \
@@ -48,6 +51,7 @@ OBJS__QUOTED += \
 "src\can_isr.obj" \
 "src\ct_dma.obj" \
 "src\flash_module.obj" \
+"src\fw_mode.obj" \
 "src\pdu_manager.obj" \
 "src\power_calc.obj" \
 "src\power_calc_3phase.obj" \
@@ -60,6 +64,7 @@ C_DEPS__QUOTED += \
 "src\can_isr.d" \
 "src\ct_dma.d" \
 "src\flash_module.d" \
+"src\fw_mode.d" \
 "src\pdu_manager.d" \
 "src\power_calc.d" \
 "src\power_calc_3phase.d" \
@@ -72,6 +77,7 @@ C_SRCS__QUOTED += \
 "../src/can_isr.c" \
 "../src/ct_dma.c" \
 "../src/flash_module.c" \
+"../src/fw_mode.c" \
 "../src/pdu_manager.c" \
 "../src/power_calc.c" \
 "../src/power_calc_3phase.c" \

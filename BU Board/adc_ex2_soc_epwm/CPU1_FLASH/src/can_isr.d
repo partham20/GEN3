@@ -119,6 +119,7 @@ src/can_isr.obj: ../src/flash_programming_f28p55x.h
 src/can_isr.obj: C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/hw_mcan.h
 src/can_isr.obj: ../src/Firmware\ Upgrade/fw_update_bu.h
 src/can_isr.obj: ../src/Firmware\ Upgrade/fw_upgrade_config.h
+src/can_isr.obj: ../src/fw_mode.h
 
 ../src/can_isr.c:
 
@@ -357,4 +358,6 @@ C:/ti/c2000/C2000Ware_5_04_00_00/driverlib/f28p55x/driverlib/inc/hw_mcan.h:
 ../src/Firmware\ Upgrade/fw_update_bu.h:
 
 ../src/Firmware\ Upgrade/fw_upgrade_config.h:
+
+../src/fw_mode.h:
 

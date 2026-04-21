@@ -53,7 +53,9 @@ SECTIONS
 
    .stack           : > RAMGS0
 #if defined(__TI_EABI__)
-   .bss             : >> RAMGS1  | RAMGS2 | RAMGS3 | RAMLS8
+   /* Expanded placement — full app + fw_mode overflows RAMGS1/2/3+RAMLS8.
+    * RAMLS1/2/7 are otherwise idle on the S-Board, reuse them for bss. */
+   .bss             : >> RAMGS1 | RAMGS2 | RAMGS3 | RAMLS8 | RAMLS1 | RAMLS2 | RAMLS7
    .bss:output      : > RAMLS3
    .init_array      : > FLASH_BANK0, ALIGN(8)
    .const           : > FLASH_BANK0, ALIGN(8)

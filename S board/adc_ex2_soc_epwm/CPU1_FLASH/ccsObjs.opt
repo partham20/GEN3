@@ -33,6 +33,7 @@
 "./metrology/metrology_fir_table.obj"
 "./metrology/metrology_foreground.obj"
 "./metrology/metrology_setup.obj"
+"./src/fw_mode.obj"
 "../28p55x_flash_api_lnk.cmd"
 "../FAPI_F28P55x_EABI_v4.00.00.lib"
 "../driverlib.lib"

@@ -42,6 +42,7 @@
 #include "src/pdu_manager.h"   /* PDU data manager for flash calibration */
 #include "src/flash_module.h"  /* Flash API operations for Bank 4 */
 #include "src/Firmware Upgrade/fw_update_bu.h"  /* BU firmware OTA receiver */
+#include "src/fw_mode.h"        /* System-wide FW update mode control */
 #include "metro.h"
 //THD
 #include "c2000ware_libraries.h"
@@ -209,61 +210,414 @@ __interrupt void GPIOISR(void);
 //
 void main(void)
 {
-    /* GPIO 20 heartbeat — visible on a scope / LED to confirm the
-     * BU firmware is alive and the main loop is running. */
+    uint16_t i;
+
+    /* GPIO 29 heartbeat LED */
     GPIO_setPinConfig(GPIO_29_GPIO29);
     GPIO_setDirectionMode(29, GPIO_DIR_MODE_OUT);
     GPIO_setPadConfig(29, GPIO_PIN_TYPE_STD);
 
-    /* 1. Core init */
+    /* ── 1. Core init + PIE + FPU libraries ─────────────────── */
     Device_init();
     Device_initGPIO();
-
-    /* 2. Flash API — required by fw_update_bu real-flash path */
     FlashAPI_init();
-
-    /* 3. Interrupt infrastructure */
     Interrupt_initModule();
     Interrupt_initVectorTable();
+    C2000Ware_libraries_init();
 
-    /* 4. MCAN clock + GPIO pin config (Launchpad: GPIO 4 TX / 5 RX
-     *    via FW_BU_MCAN_TX_PIN / FW_BU_MCAN_RX_PIN in the config
-     *    header; production hardware can override there). */
+    /* ── 2. THD analyzer (FFT + window tables) ──────────────── */
+    THD_init(&g_analyzer,
+             RFFTin1Buff,
+             RFFToutBuff,
+             RFFTmagBuff,
+             RFFTphBuff,
+             RFFTTwiddleCoef,
+             WindowCoef,
+             (float32_t*)g_adcState.rawBuffers,
+             THD_NUM_CHANNELS,
+             THD_FFT_SIZE,
+             THD_FFT_STAGES);
+    THD_ADC_init();
+
+    /* ── 3. MCAN clock + board-level SysConfig init ─────────── */
     SysCtl_setMCANClk(CAN_BU_SYSCTL, SYSCTL_MCANCLK_DIV_5);
+    Board_init();
 
-    /* 5. MCAN init + filter setup + interrupts.
-     *    initMCAN() also calls readCANAddress() which populates the
-     *    global `address` from DIP switches — on a Launchpad with no
-     *    DIP switches this reads 0; we override below. */
+    /* ── 4. Metrology + MCAN + BU FW receiver ───────────────── */
+    metrology_main();
     initMCAN();
-
-    /* 6. BU FW receiver — board id override if config has one set,
-     *    otherwise fall through to whatever readCANAddress() got. */
     {
-        uint8_t myFwId = (uint8_t)(10U + address);  /* CAN ID = 10 + DIP switch */
+        uint8_t myFwId = (uint8_t)(10U + address);
 #if defined(FW_BU_BOARD_ID_OVERRIDE) && (FW_BU_BOARD_ID_OVERRIDE != 0)
         myFwId = (uint8_t)FW_BU_BOARD_ID_OVERRIDE;
 #endif
         BU_Fw_init(myFwId);
     }
 
-    /* 7. Enable global interrupts */
+    /* ── 5. Power calc + calibration + branch TX ────────────── */
+    PowerCalc_init();
+    Power3Phase_init();
+    Calibration_init();
+
+#ifdef CAN_ENABLED
+    {
+        bool flashOk = initializeFlashAndLoadData();
+        if (flashOk) { PDU_syncToCalibration(); }
+    }
+#endif
+
+    BranchTx_init();
+
+    /* ── 6. ADC / CT DMA / DAC / DMA ISRs / ePWM ────────────── */
+    initADC_DMA();
+    initCT_DMA();
+    initDAC();
+    Interrupt_register(INT_DMA_CH1, &dmaCh1ISR);
+    Interrupt_enable(INT_DMA_CH1);
+    Interrupt_register(INT_DMA_CH2, &dmaCh2ISR);
+    Interrupt_enable(INT_DMA_CH2);
+
+    SysCtl_disablePeripheral(SYSCTL_PERIPH_CLK_TBCLKSYNC);
+    initEPWM();
+    SysCtl_enablePeripheral(SYSCTL_PERIPH_CLK_TBCLKSYNC);
+
+    /* Zero ADC results buffer before first capture */
+    for (i = 0; i < NUM_CHANNELS; i++) { myADC0Results[i] = 0; }
+
+    /* ── 7. Global interrupts on ───────────────────────────── */
     EINT;
     ERTM;
 
-    /* Main loop — drain the BU FW receiver + heartbeat. Nothing else. */
+    /* ── 8. System-wide FW update mode state machine ────────── */
+    FwMode_init();
+    FwMode_sendBootStatus();
+
+    /* ══════════════════════════════════════════════════════════
+     *  Main loop
+     * ══════════════════════════════════════════════════════════ */
     while (1)
     {
+        /* BU firmware OTA has absolute priority — stop everything
+         * else while it's actively receiving/flashing. */
+        if (BU_Fw_isBusy())
+        {
+            BU_Fw_process();
+            continue;
+        }
         BU_Fw_process();
 
+        /* FW-mode tick (drain ENTER/EXIT/STATUS_REQ + 1 Hz heartbeat) */
+        FwMode_tick();
 
+        /* In FW update mode everything normal is suspended. */
+        if (FwMode_isActive()) continue;
+
+#ifdef CAN_ENABLED
+        /* ── Flash command processing (calibration bucket) ─── */
+        if (g_cmdEraseBank4)
+        {
+            DINT;
+            eraseBank4();
+            EINT;
+            newestData = 0; oldestData = 0xFFFF;
+            writeAddress = 0xFFFFFFFF;
+            addressToWrite = BANK4_START;
+            emptySectorFound = true;
+            CAN_sendErasedBank4Ack();
+            g_cmdEraseBank4 = false;
+        }
+
+        if (g_cmdWriteDefaults == CMD_WRITE_DEFAULTS_KEY)
+        {
+            g_cmdWriteDefaults = CMD_WRITE_DEFAULTS_IDLE;
+            DINT;
+            findReadAndWriteAddress();
+            if (newestData >= WRAP_LIMIT)
+            {
+                eraseBank4();
+                newestData = 0; oldestData = 0xFFFF;
+                writeAddress = 0xFFFFFFFF;
+                addressToWrite = BANK4_START;
+                emptySectorFound = true;
+            }
+            else { eraseSectorOrFindEmptySector(); }
+            writeDefaultCalibrationValues();
+            writeToFlash();
+            EINT;
+            if (!updateFailed)
+            {
+                syncReadWriteToWorking();
+                PDU_syncToCalibration();
+                CAN_sendWrittenDefaultsAck();
+            }
+        }
+
+        if (g_cmdSaveCalibration)
+        {
+            syncWorkingToReadWrite();
+            DINT;
+            findReadAndWriteAddress();
+            if (newestData >= WRAP_LIMIT)
+            {
+                eraseBank4();
+                newestData = 0; oldestData = 0xFFFF;
+                writeAddress = 0xFFFFFFFF;
+                addressToWrite = BANK4_START;
+                emptySectorFound = true;
+            }
+            else { eraseSectorOrFindEmptySector(); }
+            pduManager.readWriteData.sectorIndex = ++newestData;
+            pduManager.readWriteData.BUBoardID = address;
+            memcpy(Buffer, &pduManager.readWriteData, sizeof(CalibData));
+            datasize = sizeof(CalibData) / sizeof(uint16_t);
+            writeToFlash();
+            EINT;
+            if (!updateFailed) { CAN_sendCalibUpdateSuccessAck(); }
+            else               { CAN_sendCalibUpdateFailAck();     }
+            g_cmdSaveCalibration = false;
+        }
+
+        /* Auto-save calibration frames from S-Board */
+        if (g_calibRx.dataReady)
+        {
+            uint16_t ct;
+            pduManager.readWriteData.BUBoardID = address;
+            for (ct = 0; ct < CAL_NUM_CTS; ct++)
+            {
+                pduManager.readWriteData.currentGain[ct] = g_calibRx.currentGain[ct];
+                pduManager.readWriteData.kwGain[ct]      = g_calibRx.kwGain[ct];
+            }
+            DINT;
+            findReadAndWriteAddress();
+            if (newestData >= WRAP_LIMIT)
+            {
+                eraseBank4();
+                newestData = 0; oldestData = 0xFFFF;
+                writeAddress = 0xFFFFFFFF;
+                addressToWrite = BANK4_START;
+                emptySectorFound = true;
+            }
+            else { eraseSectorOrFindEmptySector(); }
+            pduManager.readWriteData.sectorIndex = ++newestData;
+            memcpy(Buffer, &pduManager.readWriteData, sizeof(CalibData));
+            datasize = sizeof(CalibData) / sizeof(uint16_t);
+            writeToFlash();
+            EINT;
+            if (!updateFailed)
+            {
+                syncReadWriteToWorking();
+                PDU_syncToCalibration();
+                CAN_sendCalibUpdateSuccessAck();
+            }
+            else { CAN_sendCalibUpdateFailAck(); }
+            g_calibRx.currentRxd = false;
+            g_calibRx.kwRxd      = false;
+            g_calibRx.dataReady  = false;
+        }
+
+        /* Skip runtime ADC/DMA work while calibrating. */
+        if (g_calibrationPhase) { continue; }
+#endif
+
+        /* ── STEP 1: wait for sync pulse (GPIO28 from S-Board) ── */
+        while (firstpulse == false)
+        {
+#ifdef CAN_ENABLED
+            if (g_calibrationPhase) break;
+#endif
+            /* Still honour FW-mode transitions while waiting. */
+            FwMode_tick();
+            if (FwMode_isActive()) break;
+        }
+        if (FwMode_isActive()) continue;
+
+        /* ── STEP 2: CT DMA capture (18 channels) ── */
+        done = 0; playbackIndex = 0; isPlaybackMode = 1;
+        ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER1);
+        ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER2);
+        ADC_clearInterruptStatus(ADCE_BASE,   ADC_INT_NUMBER2);
+        ADC_clearInterruptOverflowStatus(myADC0_BASE, ADC_INT_NUMBER1);
+        ADC_clearInterruptOverflowStatus(myADC0_BASE, ADC_INT_NUMBER2);
+        ADC_clearInterruptOverflowStatus(ADCE_BASE,   ADC_INT_NUMBER2);
+        EPWM_clearADCTriggerFlag(EPWM7_BASE, EPWM_SOC_A);
+        EPWM_forceADCTriggerEventCountInit(EPWM7_BASE, EPWM_SOC_A);
+
+        CT_DMA_reset();
+        CT_DMA_start();
+        EPWM_enableADCTrigger(EPWM7_BASE, EPWM_SOC_A);
+
+        /* STEP 3: wait for DMA completion (both channels). */
+        while (!CT_DMA_isComplete() && firstpulse == true)
+        {
+#ifdef CAN_ENABLED
+            if (g_calibrationPhase) break;
+#endif
+        }
+
+        EPWM_disableADCTrigger(EPWM7_BASE, EPWM_SOC_A);
+        CT_DMA_copyToPingPong();
+        CT_DMA_swapPingPong();
+
+        {
+            volatile int16_t* ct1Inactive = CT_DMA_getInactiveCTBuffer(1);
+            PowerCalc_copyCurrentFromADC((uint16_t*)ct1Inactive, RESULTS_BUFFER_SIZE);
+            PowerCalc_swapCurrentBuffer();
+        }
+
+        /* ── Playback phase ── */
+        done = 0; playbackIndex = 0; isPlaybackMode = 1;
+        ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER1);
+        ADC_clearInterruptOverflowStatus(myADC0_BASE, ADC_INT_NUMBER1);
+        EPWM_clearADCTriggerFlag(EPWM7_BASE, EPWM_SOC_A);
+
+        counter++;
+        EPWM_enableADCTrigger(EPWM7_BASE, EPWM_SOC_A);
+        while (done == 0)
+        {
+#ifdef CAN_ENABLED
+            if (g_calibrationPhase) break;
+#endif
+        }
+        EPWM_disableADCTrigger(EPWM7_BASE, EPWM_SOC_A);
+
+#ifdef CAN_ENABLED
+        /* STEP 4: wait for voltage RX from S-Board. */
+        while (g_canRxComplete == false)
+        {
+            if (g_framesReady)
+            {
+                VoltageRx_copyToPingPongBuffer();
+                g_framesReady = false;
+            }
+            if (g_calibrationPhase) break;
+        }
+        g_canRxComplete = false;
+
+        Power3Phase_copyVoltageToActive(POWER_PHASE_R,
+                                          g_RPhaseVoltageBuffer, TOTAL_SAMPLE_COUNT);
+        Power3Phase_copyVoltageToActive(POWER_PHASE_Y,
+                                          g_YPhaseVoltageBuffer, TOTAL_SAMPLE_COUNT);
+        Power3Phase_copyVoltageToActive(POWER_PHASE_B,
+                                          g_BPhaseVoltageBuffer, TOTAL_SAMPLE_COUNT);
+        Power3Phase_swapAllVoltageBuffers();
+#endif
+
+        /* STEP 5: power calc (18 CTs). */
+        if (g_powerCalcEnabled && g_cycleCount > 0)
+        {
+            Power3Phase_calculateAllPower();
+            g_lastRealPower = Power3Phase_getTotalPower_raw();
+        }
+        g_cycleCount++;
+
+        App_calculateMetrologyParameters(&gAppHandle, &gMetrologyWorkingData);
+
+        if (g_powerCalcEnabled && g_cycleCount > 1)
+        {
+            Power3Phase_calculateApparentReactivePF();
+        }
+
+        if (THD_ADC_isBufferReady())
+        {
+            THD_processAllChannels(&g_analyzer);
+            THD_ADC_resetAndRearm();
+        }
+
+        /* STEP 7: branch TX to S-Board (18 frames). */
+        if (g_powerCalcEnabled && g_cycleCount > 1)
+        {
+            uint16_t ct;
+            for (ct = 1; ct <= BRANCH_TX_NUM_CTS; ct++)
+            {
+                float irms = gMetrologyWorkingData.phases[ct - 1]
+                              .readings.RMSCurrent
+                             * g_calibration.currentGain[ct - 1];
+                const CT_PowerResult *ctResult;
+                float realPower = 0.0f;
+                uint16_t ctIndex   = ct - 1;
+                uint16_t phase     = ctIndex / POWER_CTS_PER_PHASE;
+                uint16_t ctInPhase = ctIndex % POWER_CTS_PER_PHASE;
+
+                if      (phase == POWER_PHASE_R) ctResult = &g_power3PhaseResults.rPhase.ct[ctInPhase];
+                else if (phase == POWER_PHASE_Y) ctResult = &g_power3PhaseResults.yPhase.ct[ctInPhase];
+                else                              ctResult = &g_power3PhaseResults.bPhase.ct[ctInPhase];
+                realPower = ctResult->realPower_watts;
+                BranchTx_updateStats(ct, irms, realPower);
+            }
+            BranchTx_sendAllBranches();
+        }
+
+        /* Normal app heartbeat (0x6FF) — suppressed in FW mode */
         g_heartbeatLoopCounter++;
         if (g_heartbeatLoopCounter >= HEARTBEAT_LOOP_THRESHOLD)
         {
             g_heartbeatLoopCounter = 0;
-            sendAppHeartbeat(); GPIO_togglePin(29);
+            sendAppHeartbeat();
+            GPIO_togglePin(29);
         }
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+ *  Suspend / resume hooks — called by fw_mode.c on ENTER / EXIT.
+ *
+ *  Stops the BU real-time chain: ePWM7 (5.12 kHz SOC trigger),
+ *  CT DMA (18 channels), ADC-level interrupts, CPU timer.
+ *
+ *  Register writes against uninitialised peripherals are NOPs —
+ *  today's simplified main() (BU_Fw_process only) doesn't start
+ *  them, so these calls have no effect until main_FULL is
+ *  restored.  At that point the hooks will do the right thing.
+ * ═══════════════════════════════════════════════════════════════ */
+void buBoardSuspendNormalMode(void)
+{
+    /* 1. Freeze the ePWM7 SOC trigger so ADC stops converting. */
+    EPWM_disableADCTrigger(EPWM7_BASE, EPWM_SOC_A);
+    EPWM_setTimeBaseCounterMode(EPWM7_BASE,
+                                 EPWM_COUNTER_MODE_STOP_FREEZE);
+
+    /* 2. Stop the CT DMA capture (both channels). */
+    CT_DMA_stop();
+
+    /* 3. Disable ADC interrupts so any stale EOCs don't fire. */
+    ADC_disableInterrupt(myADC0_BASE, ADC_INT_NUMBER1);
+    ADC_disableInterrupt(myADC0_BASE, ADC_INT_NUMBER2);
+    ADC_disableInterrupt(myADC1_BASE, ADC_INT_NUMBER2);   /* ADC-E INT2 */
+
+    /* 4. Disable PIE-level interrupts for ADC + DMA ISRs. */
+    Interrupt_disable(INT_ADCA1);
+    Interrupt_disable(INT_DMA_CH1);
+    Interrupt_disable(INT_DMA_CH2);
+
+    /* 5. Stop the CPU timer driving calibration phase timing. */
+    CPUTimer_stopTimer(CPUTIMER0_BASE);
+}
+
+void buBoardResumeNormalMode(void)
+{
+    /* 1. Clear stale ADC interrupt flags before re-arming. */
+    ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER1);
+    ADC_clearInterruptStatus(myADC0_BASE, ADC_INT_NUMBER2);
+    ADC_clearInterruptStatus(myADC1_BASE, ADC_INT_NUMBER2);
+
+    /* 2. Reset CT DMA to a clean state (clear triggers + addresses). */
+    CT_DMA_reset();
+
+    /* 3. Re-enable ADC interrupts. */
+    ADC_enableInterrupt(myADC0_BASE, ADC_INT_NUMBER1);
+    ADC_enableInterrupt(myADC0_BASE, ADC_INT_NUMBER2);
+    ADC_enableInterrupt(myADC1_BASE, ADC_INT_NUMBER2);
+
+    /* 4. Re-enable PIE interrupts. */
+    Interrupt_enable(INT_ADCA1);
+    Interrupt_enable(INT_DMA_CH1);
+    Interrupt_enable(INT_DMA_CH2);
+
+    /* 5. Restart the CPU timer. */
+    CPUTimer_startTimer(CPUTIMER0_BASE);
+
+    /* 6. Main loop's capture cycle will re-start DMA + ePWM trigger
+     *    as part of its next iteration — nothing else to do here. */
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -22,6 +22,7 @@
 #include "pdu_manager.h"
 #include "inc/hw_mcan.h"
 #include "Firmware Upgrade/fw_update_bu.h"
+#include "fw_mode.h"
 
 /* Debug counters - watch these in debugger */
 volatile uint32_t g_isrCallCount = 0;
@@ -139,7 +140,14 @@ __interrupt void MCANIntr1ISR(void)
                 //
                 if (rxId == 4U)
                 {
-                    if (byte0 == 0x06U)
+                    /* FW update mode commands (ENTER/EXIT/STATUS) are
+                     * byte0 0x1E/0x1F/0x42; if fw_mode consumes them
+                     * we skip the legacy discovery/erase dispatch. */
+                    if (FwMode_isrOnBroadcast(g_rxMsg[bufIdx].data))
+                    {
+                        /* claimed */
+                    }
+                    else if (byte0 == 0x06U)
                     {
                         // Calibration stop - reset CPU immediately
                         SysCtl_resetDevice();

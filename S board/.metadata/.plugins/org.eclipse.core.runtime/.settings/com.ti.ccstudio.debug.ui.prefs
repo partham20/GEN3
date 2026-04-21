@@ -2,6 +2,6 @@ MODULES_MRU_PATH=D\:\\GEN3\\S board\\adc_ex2_soc_epwm\\CPU1_FLASH\\adc_ex2_soc_e
 MODULES_MRU_PATH.1=D\:\\GEN3\\S board\\flash_kernel_ex4_can_flash_kernel\\CPU1_RAM\\flash_kernel_ex4_can_flash_kernel.out\#THREAD_IDS\#Texas Instruments XDS110 USB Debug Probe_0/C28xx_CPU1
 MODULES_MRU_PATH.2=D\:\\GEN3\\S board\\boot_manager\\CPU1_FLASH\\boot_manager.out\#THREAD_IDS\#Texas Instruments XDS110 USB Debug Probe_0/C28xx_CPU1
 eclipse.preferences.version=1
-symbolAutoCompleteHistory<seperator>org.eclipse.cdt.debug.ui.memory.memorybrowser.MemoryBrowser<seperator>Data<seperator>Texas\ Instruments\ XDS110\ USB\ Debug\ Probe_0\\C28xx_CPU1=0x80000,0x82000,0xC0000,0xA0000,0xc0000,0x082000,0x0005D200 ,0xC8000,0x100000,0x0016200,00016200
+symbolAutoCompleteHistory<seperator>org.eclipse.cdt.debug.ui.memory.memorybrowser.MemoryBrowser<seperator>Data<seperator>Texas\ Instruments\ XDS110\ USB\ Debug\ Probe_0\\C28xx_CPU1=0xA0000,0x80000,0x82000,0xC0000,0xc0000,0x082000,0x0005D200 ,0xC8000,0x100000,0x0016200,00016200
 symbolAutoCompleteHistory<seperator>org.eclipse.cdt.dsf.debug.ui.disassembly.view<seperator>Texas\ Instruments\ XDS110\ USB\ Debug\ Probe_0\\C28xx_CPU1=0x480C11,0x80000,0x08096d,0x0809d1,0x080000
 useAnnotationsPrefPage=true

@@ -87,6 +87,39 @@
 #define DISCOVERY_STOP_CMD              0x0C
 #define DISCOVERY_RESPONSE_ACK          0x0D
 
+/* ══════════════════════════════════════════════════════════════
+ *  FW Update Mode — system-wide quiesce/resume control
+ *  M-Board <-> S-Board on MCANB (CMD ID 7, RESP ID 8)
+ *  S-Board <-> BU-Boards on MCANA (broadcast ID 4, reply 10+dip)
+ * ══════════════════════════════════════════════════════════════ */
+#define CMD_ENTER_FW_MODE               0x3C    /* M->S: stop everything, prepare for OTA */
+#define CMD_EXIT_FW_MODE                0x3D    /* M->S: resume normal application */
+#define CMD_FW_STATUS_REQ               0x3E    /* M->S: request aggregate FW status */
+#define RESP_FW_SUMMARY                 0x40    /* S->M: aggregate summary payload */
+#define RESP_FW_RESULT                  0x41    /* BU->S: per-board result (push+pull) */
+
+#define BU_CMD_ENTER_FW_MODE            0x1E    /* S->BU (broadcast MCANA id 4) */
+#define BU_CMD_EXIT_FW_MODE             0x1F    /* S->BU */
+#define BU_CMD_FW_STATUS_REQ            0x42    /* S->BU */
+#define BU_FW_BROADCAST_CAN_ID          4U      /* MCANA broadcast to all BU boards */
+
+/* Heartbeat in FW mode — 1 Hz, data[0]=board_id, data[1]=1 */
+#define HEARTBEAT_FW_MODE_CAN_ID        0x6FE
+
+/* FW-result status codes (data[1] of RESP_FW_RESULT) */
+#define FW_RESULT_BOOTED                0x01    /* came up after reboot, alive */
+#define FW_RESULT_NORMAL                0x02    /* running normal app, no update happened */
+#define FW_RESULT_FAILED                0x03    /* boot manager reported failure */
+
+/* Build-time firmware version — reported in RESP_FW_RESULT / RESP_FW_SUMMARY */
+#ifndef APP_VERSION
+#define APP_VERSION                     0x0011U /* 17 — matches GUI default */
+#endif
+
+/* App image region for CRC32 reporting (matches boot manager's copy range) */
+#define APP_IMAGE_START                 0x084000UL
+#define APP_IMAGE_MAX_SIZE              0x1C000UL   /* 112KB, Bank 0 sectors 16..127 */
+
 // Retry Configuration
 #define MAX_RETRIES                     4
 #define MAX_RETRIES_CMD                 0x05

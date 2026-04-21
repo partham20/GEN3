@@ -1,5 +1,5 @@
 {
-  "bin_path": "D:/GEN3/BU Board/adc_ex2_soc_epwm/CPU1_FLASH/bublinkyy.bin",
+  "bin_path": "D:/GEN3/S board/adc_ex2_soc_epwm/CPU1_FLASH/adc_ex2_soc_epwm.bin",
   "version": 11,
   "pcan_channel": "PCAN_USBBUS1",
   "f_clock_mhz": 30,

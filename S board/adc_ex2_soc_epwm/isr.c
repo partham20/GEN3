@@ -15,6 +15,7 @@
 #include "Firmware Upgrade/fw_image_rx.h"
 #include "BU Firmware Upgrade/fw_bu_image_rx.h"
 #include "BU Firmware Upgrade/fw_bu_master.h"
+#include "src/fw_mode.h"
 
 
 /**
@@ -132,12 +133,22 @@ __interrupt void MCANIntr1ISR(void)
                 uint32_t boardId = (rxMsg[i].id >> 18U) & 0x7FFU;
                 if (boardId >= FIRST_BU_ID && boardId < (FIRST_BU_ID + MAX_BU_BOARDS))
                 {
-                    buMessagePending[i] = true;          // Existing calibration system
-                    buMessageReceived = true;            // Existing flag
+                    /* BU -> S result frame (push on boot + pull reply)?
+                     * These carry data[0] == RESP_FW_RESULT (0x41). Peel
+                     * them off into fw_mode; everything else is runtime. */
+                    if (rxMsg[i].data[0] == RESP_FW_RESULT)
+                    {
+                        FwMode_recordBuResult(rxMsg[i].data);
+                    }
+                    else
+                    {
+                        buMessagePending[i] = true;      // Existing calibration system
+                        buMessageReceived = true;        // Existing flag
 
-                    // Copy runtime data to buffer IMMEDIATELY in ISR
-                    processBURuntimeFrame(&rxMsg[i]);
-                    runtimeMessageReceived = true;       // Signal main loop
+                        // Copy runtime data to buffer IMMEDIATELY in ISR
+                        processBURuntimeFrame(&rxMsg[i]);
+                        runtimeMessageReceived = true;   // Signal main loop
+                    }
                 }
                 else if (boardId == 3)
                 {
@@ -148,10 +159,16 @@ __interrupt void MCANIntr1ISR(void)
                 {
                     FW_ImageRx_isrOnData(&rxMsg[i]);
                 }
-                // Firmware update: command frame (ID 7) → pending cmd
+                // Firmware update: command frame (ID 7).
+                // First give fw_mode a chance (ENTER/EXIT/STATUS_REQ use this
+                // ID too but are dispatched by data[0]); fall through to the
+                // OTA protocol handler otherwise.
                 else if (boardId == FW_CMD_CAN_ID)
                 {
-                    FW_ImageRx_isrOnCommand(&rxMsg[i]);
+                    if (!FwMode_isrOnCommand(rxMsg[i].data))
+                    {
+                        FW_ImageRx_isrOnCommand(&rxMsg[i]);
+                    }
                 }
                 // BU firmware staging: data frame (ID 0x18) → Bank 1 ring buffer
                 else if (boardId == FW_BU_DATA_CAN_ID)
@@ -207,10 +224,16 @@ __interrupt void MCANIntr1ISR(void)
                 {
                     FW_ImageRx_isrOnData(&rxMsg[i]);
                 }
-                // Firmware update: command frame (ID 7) → pending cmd
+                // Firmware update: command frame (ID 7).
+                // First give fw_mode a chance (ENTER/EXIT/STATUS_REQ use this
+                // ID too but are dispatched by data[0]); fall through to the
+                // OTA protocol handler otherwise.
                 else if (boardId == FW_CMD_CAN_ID)
                 {
-                    FW_ImageRx_isrOnCommand(&rxMsg[i]);
+                    if (!FwMode_isrOnCommand(rxMsg[i].data))
+                    {
+                        FW_ImageRx_isrOnCommand(&rxMsg[i]);
+                    }
                 }
                 // BU firmware staging: data frame (ID 0x18) → Bank 1 ring buffer
                 else if (boardId == FW_BU_DATA_CAN_ID)

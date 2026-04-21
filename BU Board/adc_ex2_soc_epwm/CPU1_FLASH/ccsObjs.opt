@@ -19,6 +19,7 @@
 "./src/can_isr.obj"
 "./src/ct_dma.obj"
 "./src/flash_module.obj"
+"./src/fw_mode.obj"
 "./src/pdu_manager.obj"
 "./src/power_calc.obj"
 "./src/power_calc_3phase.obj"

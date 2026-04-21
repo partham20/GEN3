@@ -164,6 +164,7 @@ adc_ex2_soc_epwm.obj: ../Firmware\ Upgrade/fw_image_rx.h
 adc_ex2_soc_epwm.obj: ../BU\ Firmware\ Upgrade/fw_bu_image_rx.h
 adc_ex2_soc_epwm.obj: ../BU\ Firmware\ Upgrade/fw_upgrade_config.h
 adc_ex2_soc_epwm.obj: ../BU\ Firmware\ Upgrade/fw_bu_master.h
+adc_ex2_soc_epwm.obj: ../src/fw_mode.h
 adc_ex2_soc_epwm.obj: ../i2c_scanner.h
 adc_ex2_soc_epwm.obj: ../THD_Module/THD_Module.h
 adc_ex2_soc_epwm.obj: ../THD_Module/thd_signal_processing.h
@@ -496,6 +497,8 @@ C:/ti/ccs1281/ccs/tools/compiler/ti-cgt-c2000_22.6.1.LTS/include/stdlib.h:
 ../BU\ Firmware\ Upgrade/fw_upgrade_config.h:
 
 ../BU\ Firmware\ Upgrade/fw_bu_master.h:
+
+../src/fw_mode.h:
 
 ../i2c_scanner.h:
 
