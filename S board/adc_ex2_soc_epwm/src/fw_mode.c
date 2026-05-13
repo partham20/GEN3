@@ -6,6 +6,7 @@
 #include "driverlib.h"
 #include "device.h"
 #include "can_config.h"
+#include "Firmware Upgrade/fw_image_rx.h"   /* FW_BANK3_FLAG_ADDR / FW_FLAG_INSTALLED */
 #include <string.h>
 
 /* ── Module state ─────────────────────────────────────────────── */
@@ -165,6 +166,19 @@ void FwMode_recordBuResult(const uint8_t *data)
                                ((uint32_t)data[6] << 8) |
                                ((uint32_t)data[7] << 16) |
                                ((uint32_t)data[8] << 24);
+
+    /* Forward verbatim to the M-Board on MCANB.  The BU's announce
+     * lives on MCANA and the M-Board can't see it directly, so the
+     * S-Board must repeat it on the M-Board bus.  ota.sh's
+     * wait_result_for_id() filters CAN ID 0x008, opcode 0x41,
+     * bu_id == data[1], so the forwarded frame matches as-is. */
+    {
+        uint8_t fwd[12];
+        uint16_t i;
+        for (i = 0U; i < 9U; i++) fwd[i] = data[i];
+        for (i = 9U; i < 12U; i++) fwd[i] = 0U;
+        sendMCANB(FW_MODE_RESP_CAN_ID, fwd, 12U);
+    }
 }
 
 /* ── Boot-time status push ───────────────────────────────────── */
@@ -184,23 +198,56 @@ void FwMode_sendBootStatus(void)
     p[6] = (uint8_t)((crc >> 8) & 0xFFU);
     p[7] = (uint8_t)((crc >> 16) & 0xFFU);
     p[8] = (uint8_t)((crc >> 24) & 0xFFU);
-    sendMCANB(RESP_FW_RESULT, p, 12U);
+    sendMCANB(FW_MODE_RESP_CAN_ID, p, 12U);
 }
 
 /* ══════════════════════════════════════════════════════════════
  *  Local helpers
  * ══════════════════════════════════════════════════════════════ */
 
-/* CRC32 (zlib / IEEE 802.3 — poly 0xEDB88320, reflected) over
- * APP_IMAGE_START for APP_IMAGE_MAX_SIZE bytes. Stable across boots
- * because the app region is immutable once flashed. */
+/* CRC32 (zlib / IEEE 802.3 — poly 0xEDB88320, reflected) over the
+ * installed app image only.
+ *
+ * Range source:
+ *   - On a board that came up from a successful OTA the boot manager
+ *     re-programmed FW_BANK3_FLAG_ADDR with FW_FLAG_INSTALLED in
+ *     word 0 and the installed image size (8-bit-byte units) in
+ *     words 2..3.  We read that and CRC exactly that many bytes.
+ *   - On a JTAG-flashed board the flag sector is erased (0xFFFF) and
+ *     no installed-size record exists; fall back to the legacy
+ *     full-region CRC over APP_IMAGE_MAX_SIZE so the announce still
+ *     produces something deterministic.
+ *
+ * Either way the value the M-Board's ota.sh -v= verification compares
+ * against is the same CRC the OTA receiver originally declared in
+ * CMD_FW_HEADER, computed over the same byte range.
+ */
 static uint32_t computeCRC32Image(void)
 {
+    volatile uint16_t *flag = (volatile uint16_t *)FW_BANK3_FLAG_ADDR;
+    uint32_t imageBytes;
     uint32_t crc = 0xFFFFFFFFUL;
-    uint32_t numWords = APP_IMAGE_MAX_SIZE / 2U;
+    uint32_t numWords;
     volatile uint16_t *wp = (volatile uint16_t *)APP_IMAGE_START;
     uint32_t i, j;
     uint16_t b;
+
+    if (flag[0] == FW_FLAG_INSTALLED)
+    {
+        imageBytes = (uint32_t)flag[2] | ((uint32_t)flag[3] << 16);
+        if ((imageBytes == 0U) || (imageBytes > APP_IMAGE_MAX_SIZE))
+        {
+            imageBytes = APP_IMAGE_MAX_SIZE;
+        }
+    }
+    else
+    {
+        /* No OTA-installed marker (JTAG-flashed or pre-fix boot
+         * manager).  Fall back to the full region. */
+        imageBytes = APP_IMAGE_MAX_SIZE;
+    }
+
+    numWords = (imageBytes + 1U) / 2U;
     for (i = 0U; i < numWords; i++)
     {
         uint16_t w = wp[i];
@@ -295,5 +342,5 @@ static void sendStatusSummary(void)
     p[5] = (uint8_t)((APP_VERSION >> 8) & 0xFFU);
     p[6] = (uint8_t)(bitmap & 0xFFU);
     p[7] = (uint8_t)((bitmap >> 8) & 0xFFU);
-    sendMCANB(RESP_FW_SUMMARY, p, 8U);
+    sendMCANB(FW_MODE_RESP_CAN_ID, p, 8U);
 }

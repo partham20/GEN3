@@ -83,6 +83,7 @@ extern bool discoveryInProgress;
 extern uint32_t receivedCurrentFrames;
 extern uint32_t receivedKWFrames;
 extern bool duplicateIDFound;
+extern uint32_t duplicateIDMask;
 extern uint32_t acknowledgedBoardCount;
 extern bool buMessagePending[MCAN_RX_BUFF_NUM];
 extern bool buMessageReceived;

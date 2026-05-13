@@ -118,13 +118,36 @@ static void sendResult(uint8_t status)
     sendMCANA(canId, p, 12U);
 }
 
+/* CRC32 (zlib / IEEE 802.3 — poly 0xEDB88320, reflected) over the
+ * installed app image only.  Reads the installed image size out of
+ * Bank 3 sector 0 word 2..3 (written by the boot manager when it
+ * marks the flag FW_FLAG_INSTALLED after a successful copy).  Falls
+ * back to APP_IMAGE_MAX_SIZE on a JTAG-flashed board where no
+ * installed-size record exists. */
 static uint32_t computeCRC32Image(void)
 {
+    volatile uint16_t *flag = (volatile uint16_t *)FW_BANK3_FLAG_ADDR;
+    uint32_t imageBytes;
     uint32_t crc = 0xFFFFFFFFUL;
-    uint32_t numWords = APP_IMAGE_MAX_SIZE / 2U;
+    uint32_t numWords;
     volatile uint16_t *wp = (volatile uint16_t *)APP_IMAGE_START;
     uint32_t i, j;
     uint16_t b;
+
+    if (flag[0] == FW_FLAG_INSTALLED)
+    {
+        imageBytes = (uint32_t)flag[2] | ((uint32_t)flag[3] << 16);
+        if ((imageBytes == 0U) || (imageBytes > APP_IMAGE_MAX_SIZE))
+        {
+            imageBytes = APP_IMAGE_MAX_SIZE;
+        }
+    }
+    else
+    {
+        imageBytes = APP_IMAGE_MAX_SIZE;
+    }
+
+    numWords = (imageBytes + 1U) / 2U;
     for (i = 0U; i < numWords; i++)
     {
         uint16_t w = wp[i];

@@ -344,12 +344,25 @@ static void buFw_handleActivate(void)
 {
     fwState = BU_FW_ACTIVATING;
 
+    /* Acknowledge ACTIVATE BEFORE we yank the chip into reset.
+     * The S-Board's master state machine waits up to FW_BU_TMO_BOOT_MS
+     * (10 s) for this BOOT_OK; if it never arrives it reports
+     * FW_BU_M_ERR_TIMEOUT to the M-Board, which then reports the
+     * whole OTA as failed even though the install actually
+     * succeeded.  Send it first, busy-wait for TX completion (the
+     * busy-wait is inside buFw_sendResponse), then trigger the
+     * flag write + reset. */
+    buFw_sendResponse(BU_RESP_FW_BOOT_OK, 0U);
+
     /* Write boot flag and reset. Function never returns on success. */
     buFw_writeBootFlag();
 
-    /* If we get here, the flag write failed — fall back to the
-     * existing firmware. The S-Board's master will time out on
-     * BOOT_OK and mark this board failed. */
+    /* If we get here, the flag write failed -- fall back to the
+     * existing firmware.  The S-Board's master already received
+     * BOOT_OK above, so it will mark the OTA DONE and then wait
+     * for our post-boot RESP_FW_RESULT.  Since we never reset,
+     * that announce never arrives and the M-Board will warn
+     * (not fail) on the missing announce. */
     fwState = BU_FW_IDLE;
 }
 

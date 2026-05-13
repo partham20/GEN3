@@ -42,6 +42,21 @@
 #include "FlashTech_F28P55x_C28x.h"
 #include "flash_programming_f28p55x.h"
 
+/* ── Boot-manager debug CAN frames ─────────────────────────────
+ * Set BOOT_MGR_VERBOSE_DEBUG to 1 to re-enable the granular CAN
+ * progress / failure frames (HELLO, FLAG_STATUS, CRC_DONE,
+ * ERASE_PROGRESS, PROG_PROGRESS, COPY_DONE, CLEAR_FLAG_*, etc.).
+ * Disabled by default because the 8 KB BOOT_FLASH region is too
+ * small to hold them plus the OTA-flag-preserve code.  Re-enable
+ * only if BOOT_FLASH is expanded in boot_manager_lnk.cmd. */
+#define BOOT_MGR_VERBOSE_DEBUG  0
+
+#if !BOOT_MGR_VERBOSE_DEBUG
+#define canSendHello()                                    ((void)0)
+#define sendBootHeartbeat()                               ((void)0)
+#define canSendDebug(canId, b0, b1, val1, val2)           ((void)0)
+#endif
+
 /* ── Memory map ───────────────────────────────────────────────── */
 #define APP_ENTRY_ADDR          0x082000UL
 #define BANK0_APP_START         0x082000UL
@@ -57,6 +72,12 @@
 /* ── Boot flag layout ─────────────────────────────────────────── */
 #define FLAG_UPDATE_PENDING     0xA5A5U
 #define FLAG_CRC_VALID          0x5A5AU
+/* After a successful copy we re-program the flag sector with this
+ * magic in word 0 (instead of erasing it outright), keeping
+ * imageSize/imageCRC intact so the freshly-booted app can compute
+ * its own CRC32 over only the actually-installed bytes -- not the
+ * full Bank 0 region with trailing 0xFFFF padding. */
+#define FLAG_INSTALLED          0x9696U
 
 /* ── CAN debug IDs ────────────────────────────────────────────── */
 #define CAN_ID_HELLO            0x09U   /* boot manager started */
@@ -93,12 +114,14 @@
 /* ── Prototypes ───────────────────────────────────────────────── */
 static void      ledInit(void);
 static void      ledSet(uint16_t on);
+#if BOOT_MGR_VERBOSE_DEBUG
 static void      configureMCANA(void);
 static void      canSendMsg(uint16_t canId, const uint8_t *payload, uint16_t len);
 static void      canSendHello(void);
 static void      sendBootHeartbeat(void);
 static void      canSendDebug(uint16_t canId, uint8_t b0, uint8_t b1,
                                uint32_t val1, uint32_t val2);
+#endif
 static uint32_t  computeCRC32(uint32_t startAddr, uint32_t numBytes);
 static void      delayCycles(uint32_t cycles);
 static void      jumpToApp(void);
@@ -112,6 +135,7 @@ static Fapi_StatusType   eraseSector(uint32_t sectorAddr);
 static Fapi_StatusType   programEightWords(uint32_t destAddr, const uint16_t *src);
 static Fapi_StatusType   copyBank2ToBank0(uint32_t imageSize);
 static Fapi_StatusType   clearBootFlag(void);
+static Fapi_StatusType   markFlagInstalled(uint32_t imageSize, uint32_t imageCRC);
 
 /* ── CRC32 table ──────────────────────────────────────────────── */
 static const uint32_t crc32Table[256] = {
@@ -264,7 +288,7 @@ void main(void)
                              BANK3_FLAG_ADDR, 0U);
 
                 EALLOW;
-                clear_st = clearBootFlag();
+                clear_st = markFlagInstalled(imageSize, imageCRC);
                 EDIS;
 
                 canSendDebug(CAN_ID_CLEAR_FLAG_DONE,
@@ -333,6 +357,7 @@ static void ledSet(uint16_t on)
     GPIO_writePin(21U, on ? 0U : 1U);
 }
 
+#if BOOT_MGR_VERBOSE_DEBUG
 /* ══════════════════════════════════════════════════════════════
  *  CAN — MCANA on GPIO 4 (TX) / GPIO 5 (RX).
  *
@@ -434,6 +459,7 @@ static void sendBootHeartbeat(void)
     uint8_t p[8] = {'B','O','O','T',0,0,0,0};
     canSendMsg(HEARTBEAT_BOOT_CAN_ID, p, 8U);
 }
+#endif /* BOOT_MGR_VERBOSE_DEBUG */
 
 /* ══════════════════════════════════════════════════════════════
  *  DELAY
@@ -622,6 +648,32 @@ static Fapi_StatusType copyBank2ToBank0(uint32_t imageSize)
 static Fapi_StatusType clearBootFlag(void)
 {
     return eraseSector(BANK3_FLAG_ADDR);
+}
+
+/* Erase the flag sector then re-program it with FLAG_INSTALLED in
+ * word 0 (so on next boot we don't re-copy) but keep imageSize and
+ * imageCRC intact in words 2..5.  The app reads imageSize from this
+ * sector to know how many bytes of Bank 0 to CRC for the post-boot
+ * RESP_FW_RESULT announce. */
+#pragma CODE_SECTION(markFlagInstalled, ".TI.ramfunc")
+static Fapi_StatusType markFlagInstalled(uint32_t imageSize, uint32_t imageCRC)
+{
+    Fapi_StatusType st;
+    uint16_t flagData[8];
+
+    st = eraseSector(BANK3_FLAG_ADDR);
+    if (st != Fapi_Status_Success) return st;
+
+    flagData[0] = FLAG_INSTALLED;                           /* 0x9696 */
+    flagData[1] = 0xFFFFU;
+    flagData[2] = (uint16_t)(imageSize & 0xFFFFU);
+    flagData[3] = (uint16_t)((imageSize >> 16) & 0xFFFFU);
+    flagData[4] = (uint16_t)(imageCRC  & 0xFFFFU);
+    flagData[5] = (uint16_t)((imageCRC  >> 16) & 0xFFFFU);
+    flagData[6] = 0xFFFFU;
+    flagData[7] = 0xFFFFU;
+
+    return programEightWords(BANK3_FLAG_ADDR, flagData);
 }
 
 /* ══════════════════════════════════════════════════════════════

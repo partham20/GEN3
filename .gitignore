@@ -1,3 +1,38 @@
 # Claude (contains local secrets/tokens)
 .claude/
 PDURepo/
+
+.octogent
+
+# CCS / Eclipse workspace state
+.metadata/
+RemoteSystemsTempFiles/
+
+# CCS build outputs (regenerated every build, including syscfg-generated
+# board.c -- it's auto-generated from the .syscfg file).
+CPU1_FLASH/
+CPU1_RAM/
+Debug/
+Release/
+
+# Compiler / linker artifacts (in case any escape the build folders)
+*.obj
+*.o
+*.out
+*.bin
+*.hex
+*.map
+*.d
+*.opt
+*.pp
+*_linkInfo.xml
+ccsObjs.opt
+
+# Large reference PDFs -- can be re-downloaded from TI; bloats the repo.
+*.pdf
+
+# Python venv / cache for the sender tool
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -23,6 +23,7 @@
 #include "BU Firmware Upgrade/fw_bu_image_rx.h"
 #include "BU Firmware Upgrade/fw_bu_master.h"
 #include "src/fw_mode.h"
+#include "src/bu_health.h"
 // I2C
 #include "i2c_scanner.h"
 //THD
@@ -1037,6 +1038,11 @@ void startup(void)
     /* ── 12. FW update mode state machine + boot-push ────────── */
     FwMode_init();
     FwMode_sendBootStatus();
+
+    /* BU fleet health monitor: tracks each BU's liveness, version,
+     * and reuses duplicateIDFound from bu_board.c.  Reports on
+     * CAN ID 0x008 with opcode RESP_BU_HEALTH (0x42) every 5 s. */
+    BuHealth_init();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1275,6 +1281,12 @@ void main(void)
         /* FW mode tick: drains pending ENTER/EXIT/STATUS_REQ cmds
          * and emits the 1 Hz FW-mode heartbeat when active. */
         FwMode_tick();
+
+        /* BU fleet health: emits RESP_BU_HEALTH (0x42) on the
+         * M-Board bus every BU_HEALTH_REPORT_MS with version /
+         * duplicate-id / dead-bu bitmaps.  Self-rate-limits so
+         * calling it every loop iteration is cheap. */
+        BuHealth_tick();
 
         /* ────────────────────────────────────────────────────
          * In FW update mode everything below is paused — the

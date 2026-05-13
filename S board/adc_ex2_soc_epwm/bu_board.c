@@ -21,6 +21,7 @@ bool discoveryInProgress = false;
 uint32_t receivedCurrentFrames = 0;
 uint32_t receivedKWFrames = 0;
 bool duplicateIDFound = false;
+uint32_t duplicateIDMask = 0U;   /* bit i set => BU at FIRST_BU_ID+i collided */
 uint32_t acknowledgedBoardCount = 0;
 bool buMessagePending[MCAN_RX_BUFF_NUM] = {false};
 bool buMessageReceived = false;
@@ -36,6 +37,7 @@ void initDiscoveryTracking(void)
     memset(discoveredBoardsInfo, 0, sizeof(discoveredBoardsInfo));
     acknowledgedBoardCount = 0;
     duplicateIDFound = false;
+    duplicateIDMask  = 0U;
 }
 
 /**
@@ -252,6 +254,7 @@ void processBUDiscoveryResponse(uint32_t boardID)
         if (isBoardAcknowledged(boardID)) {
             // This is a duplicate response from an already acknowledged board
             duplicateIDFound = true;
+            duplicateIDMask |= (1UL << boardIndex);
            // sendDuplicateIDError(boardID);
             return;
         }

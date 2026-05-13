@@ -9,6 +9,7 @@
 #include "metro.h"
 #include "pdu_manager.h"
 #include "THD_Module/THD_Module.h"
+#include "src/bu_health.h"
 
 extern THD_Analyzer g_analyzer;
 
@@ -147,6 +148,11 @@ void processBURuntimeFrame(const MCAN_RxBufElement *rxMsg)
 
     // Store BU board firmware version (Byte 0) — one per board
     buBoardVersion[boardId - FIRST_BU_ID] = dataPtr[0];
+
+    /* Update BU fleet health: marks the BU alive, captures its
+     * version.  Liveness + version-mismatch detection runs in
+     * BuHealth_tick() from the main loop. */
+    BuHealth_onRuntimeFrame(boardId, dataPtr[0]);
 
     // Parse header (use only for processing, don't store)
     buBoardNo = dataPtr[2];  // BU board number (0-11)

@@ -97,6 +97,13 @@
 #define CMD_FW_STATUS_REQ               0x3E    /* M->S: request aggregate FW status */
 #define RESP_FW_SUMMARY                 0x40    /* S->M: aggregate summary payload */
 #define RESP_FW_RESULT                  0x41    /* BU->S: per-board result (push+pull) */
+#define RESP_BU_HEALTH                  0x42    /* S->M: periodic BU-fleet health bitmap
+                                                 * (version mismatch / duplicate / dead) */
+
+/* CAN-bus arbitration ID the S-Board uses for ALL frames it sends to the
+ * M-Board on MCANB. Must match RESP_ID in m_board scripts/ota.sh (008).
+ * The opcode (RESP_FW_SUMMARY / RESP_FW_RESULT / ...) lives in data[0]. */
+#define FW_MODE_RESP_CAN_ID             8U
 
 #define BU_CMD_ENTER_FW_MODE            0x1E    /* S->BU (broadcast MCANA id 4) */
 #define BU_CMD_EXIT_FW_MODE             0x1F    /* S->BU */
@@ -111,14 +118,16 @@
 #define FW_RESULT_NORMAL                0x02    /* running normal app, no update happened */
 #define FW_RESULT_FAILED                0x03    /* boot manager reported failure */
 
-/* Build-time firmware version — reported in RESP_FW_RESULT / RESP_FW_SUMMARY */
-#ifndef APP_VERSION
-#define APP_VERSION                     0x0011U /* 17 — matches GUI default */
-#endif
+/* Build-time firmware version. Local copy must be kept BYTE-FOR-BYTE
+ * in sync with BU Board/adc_ex2_soc_epwm/firmware_version.h. */
+#include "firmware_version.h"
 
-/* App image region for CRC32 reporting (matches boot manager's copy range) */
-#define APP_IMAGE_START                 0x084000UL
-#define APP_IMAGE_MAX_SIZE              0x1C000UL   /* 112KB, Bank 0 sectors 16..127 */
+/* App image region for CRC32 reporting -- MUST match the boot manager's
+ * BANK0_APP_START / APP_SECTOR_COUNT.  The S-Board boot manager copies
+ * Bank 2 -> Bank 0 starting at 0x082000 (sector 8) for up to 120 sectors
+ * of 1 KB each = 120 KB.  Linker BEGIN is at 0x082000 too. */
+#define APP_IMAGE_START                 0x082000UL
+#define APP_IMAGE_MAX_SIZE              0x1E000UL   /* 120KB, Bank 0 sectors 8..127 */
 
 // Retry Configuration
 #define MAX_RETRIES                     4

@@ -52,6 +52,12 @@
 /* ── Boot flag layout ─────────────────────────────────────────── */
 #define FLAG_UPDATE_PENDING     0xA5A5U
 #define FLAG_CRC_VALID          0x5A5AU
+/* After a successful copy we re-program the flag sector with this
+ * magic in word 0 (instead of erasing it outright), keeping
+ * imageSize/imageCRC intact so the freshly-booted app can compute
+ * its own CRC32 over only the actually-installed bytes -- not the
+ * full Bank 0 region with trailing 0xFFFF padding. */
+#define FLAG_INSTALLED          0x9696U
 
 /* ── CAN debug IDs ────────────────────────────────────────────── */
 #define CAN_ID_HELLO            0x09U
@@ -88,6 +94,7 @@ static void      eraseSector(uint32_t sectorAddr);
 static void      programEightWords(uint32_t destAddr, const uint16_t *src);
 static void      copyBank2ToBank0(uint32_t imageSize);
 static void      clearBootFlag(void);
+static void      markFlagInstalled(uint32_t imageSize, uint32_t imageCRC);
 
 /* ── CRC32 table ──────────────────────────────────────────────── */
 static const uint32_t crc32Table[256] = {
@@ -220,7 +227,7 @@ void main(void)
             canSendDebug(CAN_ID_COPY_DONE, 0x01, 0x00, imageSize, 0);
 
             EALLOW;
-            clearBootFlag();
+            markFlagInstalled(imageSize, imageCRC);
             EDIS;
 
             canSendDebug(CAN_ID_COPY_DONE, 0x02, 0x00, 0, 0);
@@ -531,6 +538,30 @@ static void copyBank2ToBank0(uint32_t imageSize)
 static void clearBootFlag(void)
 {
     eraseSector(BANK3_FLAG_ADDR);
+}
+
+/* Erase the flag sector then re-program it with FLAG_INSTALLED in
+ * word 0 (so on next boot we don't re-copy) but keep imageSize and
+ * imageCRC intact in words 2..5.  The app reads imageSize from this
+ * sector to know how many bytes of Bank 0 to CRC for the post-boot
+ * RESP_FW_RESULT announce. */
+#pragma CODE_SECTION(markFlagInstalled, ".TI.ramfunc")
+static void markFlagInstalled(uint32_t imageSize, uint32_t imageCRC)
+{
+    uint16_t flagData[8];
+
+    eraseSector(BANK3_FLAG_ADDR);
+
+    flagData[0] = FLAG_INSTALLED;                           /* 0x9696 */
+    flagData[1] = 0xFFFFU;
+    flagData[2] = (uint16_t)(imageSize & 0xFFFFU);
+    flagData[3] = (uint16_t)((imageSize >> 16) & 0xFFFFU);
+    flagData[4] = (uint16_t)(imageCRC  & 0xFFFFU);
+    flagData[5] = (uint16_t)((imageCRC  >> 16) & 0xFFFFU);
+    flagData[6] = 0xFFFFU;
+    flagData[7] = 0xFFFFU;
+
+    programEightWords(BANK3_FLAG_ADDR, flagData);
 }
 
 /* ══════════════════════════════════════════════════════════════
